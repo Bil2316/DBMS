@@ -1,0 +1,254 @@
+\subsection{Yêu cầu dữ liệu}
+
+Dựa vào các mô tả và các yêu cầu chức năng, các thực thể chính và các thông tin lưu trữ trong từng thực thể của hệ thống bao gồm:
+\begin{table}[H]
+\centering
+\caption{Các thực thể và thông tin liên quan trong hệ thống}
+\renewcommand{\arraystretch}{1.5} 
+\begin{tabular}{|>{\centering\arraybackslash}m{4cm}|>{\centering\arraybackslash}m{11cm}|}
+\hline
+\textbf{Thực thể} & \textbf{Thông tin liên quan} \\ \hline
+
+\textbf{Người dùng (User)} 
+& 
+\begin{itemize}
+    \item Thông tin cá nhân: Tên, email, mật khẩu, tuổi, giới tính.
+    \item Vai trò của người dùng: Quản trị viên, nhà tuyển dụng, hoặc người dùng bình thường.
+    \item Công ty: Nếu người dùng là Quản trị viên hoặc Nhà tuyển dụng thuộc một công ty cụ thể.
+\end{itemize} \\ \hline
+
+\textbf{Công việc (Job)} 
+& 
+\begin{itemize}
+    \item Thông tin công việc: Tên công việc, mô tả, số lượng cần tuyển, mức lương, trình độ (INTERN, FRESHER, JUNIOR, SENIOR).
+    \item Danh sách kỹ năng yêu cầu.
+    \item Ngày bắt đầu và kết thúc tuyển dụng.
+    \item Thông tin công ty mà công việc đó thuộc về.
+\end{itemize} \\ \hline
+
+\textbf{Công ty (Company)} 
+& 
+\begin{itemize}
+    \item Thông tin công ty: Tên công ty, mô tả, logo, địa chỉ.
+\end{itemize} \\ \hline
+
+\textbf{Hồ sơ ứng tuyển (Resume)} 
+& 
+\begin{itemize}
+    \item Thông tin người ứng tuyển: Tên, email.
+    \item Trạng thái hồ sơ: PENDING (đang chờ xử lý), REVIEWING (đang được xử lý), APPROVED (được duyệt), REJECTED (từ chối).
+    \item Link (URL) hồ sơ ứng tuyển.
+    \item Thông tin công ty và công việc mà ứng viên đang ứng tuyển.
+\end{itemize} \\ \hline
+
+\end{tabular}
+\label{tab:entities}
+\end{table}
+
+\subsubsection{Lựa chọn Hệ quản trị Cơ sở dữ liệu}
+
+Từ đó, nhóm quyết định sử dụng hệ quản trị cơ sở dữ liệu \textbf{MongoDB} làm nền tảng lưu trữ dữ liệu chính cho hệ thống, bởi một số ưu điểm vượt trội hơn so với PostgreSQL như sau:
+
+\begin{enumerate}
+    \item \textbf{MongoDB cho phép nhúng trực tiếp (embedded documents) thông tin cần thiết từ các thực thể liên quan vào document chính}
+    
+    Ví dụ, ta có thể truy xuất \textbf{tên công ty} của công việc một cách nhanh chóng bằng cách lưu trữ thông tin trực tiếp vào \textbf{document }Job. Trong PostgreSQL hay bất cứ hệ cơ sở dữ liệu quan hệ (SQL) nào khác, để đạt được kết quả tương tự, ta cần thực hiện \textbf{join} giữa các bảng, đồng thời \textbf{lọc ra} các trường cần thiết, khiến truy vấn phức tạp và kém hiệu quả hơn.
+    \begin{lstlisting}[numbers=none]
+{
+    "_id": "job_id",
+    "name": "Backend Developer",
+    "skills": ["Node.js", "MongoDB"],
+    "company": {
+        "_id": "company_id",
+        "name": "Tech Co.",
+    }
+}
+    \end{lstlisting}
+
+    \item \textbf{Hỗ trợ tốt hơn cho dữ liệu mảng}
+    
+    Một số thực thể trong hệ thống, như \textbf{Job}, yêu cầu lưu trữ dữ liệu dạng mảng (danh sách kỹ năng cần tuyển dụng). MongoDB hỗ trợ tự nhiên kiểu dữ liệu \textbf{mảng} và cung cấp các công cụ truy vấn hiệu quả hơn PostgreSQL. Trong PostgreSQL, ta cần sử dụng kiểu dữ liệu \textbf{ARRAY}, và việc truy vấn trên các mảng đòi hỏi sử dụng các hàm phức tạp như \textbf{ANY} hoặc \textbf{UNNEST}, làm tăng độ khó và giảm hiệu suất.
+    
+    \textit{Ví dụ, với truy vấn \textbf{"Tìm các công việc có kỹ năng REACT.JS hoặc NEST.JS"}}
+    
+    \textbf{MongoDB}:
+    \begin{lstlisting}[numbers=none]
+db.jobs.find({ skills: { $in: ["REACT.JS", "NEST.JS"] } });
+    \end{lstlisting}
+    
+    \textbf{PostgreSQL}:
+    \begin{lstlisting}[numbers=none]
+SELECT * FROM jobs WHERE 'REACT.JS' = ANY (skills) OR 'NEST.JS' = ANY (skills);
+    \end{lstlisting}
+
+    \item \textbf{Lưu trữ dữ liệu linh hoạt, không cần schema cố định}
+
+    Một số trường trong schema chỉ xuất hiện trong các trường hợp cụ thể, ví dụ \textbf{company trong User}, chỉ tồn tại khi người dùng là nhà tuyển dụng hoặc quản trị viên. Với mô hình \textbf{document-based (JSON-like)}, cho phép lưu trữ dữ liệu không cố định (\textbf{schema-less}) mà không cần \textbf{thêm bảng phụ} hoặc lưu các trường \textbf{không cần thiết} dưới dạng \textbf{NULL} như trong PostgreSQL. Điều này giúp hệ thống đơn giản và dễ mở rộng hơn. PostgreSQL, ngược lại, yêu cầu thiết kế schema cứng nhắc, gây phức tạp khi xử lý các trường không bắt buộc.
+
+    \item \textbf{Dễ dàng thay đổi và mở rộng schema}
+
+    Khi cần thay đổi hoặc mở rộng dữ liệu của hệ thống, MongoDB cho phép \textbf{linh hoạt thêm hoặc bớt các thuộc tính} trong từng tài liệu mà không cần thay đổi toàn bộ cấu trúc cơ sở dữ liệu. Điều này rất quan trọng trong giai đoạn hệ thống đang phát triển và thiết kế dữ liệu chưa ổn định.
+
+    Trong PostgreSQL, bất kỳ thay đổi nào về schema đều yêu cầu sử dụng các lệnh như \textbf{ALTER TABLE}, điều này không chỉ làm tăng độ phức tạp mà còn có nguy cơ ảnh hưởng đến hiệu suất của hệ thống khi lượng dữ liệu lớn.
+\end{enumerate}
+
+Những lợi thế kể trên khẳng định rằng MongoDB là sự lựa chọn tối ưu cho hệ thống quản lý việc làm và ứng tuyển của nhóm. Dựa trên cơ sở này, nhóm sẽ tiếp tục triển khai việc thiết kế các schema phù hợp cho các thực thể đã xác định trong MongoDB.
+
+\subsubsection{Thiết kế Schema}
+
+Dữ liệu hệ thống được lưu trữ trong MongoDB với các schema linh hoạt được thiết kế để đáp ứng yêu cầu của hệ thống. Ngoài các schema đại diện cho từng thực thể đã nói ở phần trên, nhóm thiết kế thêm 2 schema \textbf{Permission} và \textbf{Role} dùng để quản lý truy cập dựa trên vai trò và quyền của người dùng. Chi tiết về các schema:
+
+\begin{enumerate}
+    %%%%%%%%%%%%%%%%%%%%%%%% Company %%%%%%%%%%%%%%%%%%%%%%%%
+    \item \textbf{Company Schema}: Lưu trữ thông tin của các công ty trên hệ thống
+    \begin{lstlisting}[caption=Company Schema, numbers=none]
+interface Company {
+    _id?: ObjectId;
+    name: string;
+    address: string;
+    description: string;
+    logo: string;
+}
+    \end{lstlisting}
+    Mô tả schema công ty:
+    \begin{itemize}
+        \item \texttt{\_id}: Unique ID đại diện cho từng object, được tạo ra tự động bởi MongoDB
+        \item \texttt{name}: Tên của công ty
+        \item \texttt{address}: Địa chỉ nơi công ty hoạt động
+        \item \texttt{description}: Mô tả về công ty
+        \item \texttt{logo}: Đường dẫn URL tới logo công ty
+    \end{itemize}
+    \vspace{1mm}
+    %%%%%%%%%%%%%%%%%%%%%%%% Job %%%%%%%%%%%%%%%%%%%%%%%%
+    \item \textbf{Job Schema}: Lưu trữ thông tin về các công việc được đăng tuyển trong hệ thống.
+    \begin{lstlisting}[caption=Job Schema, numbers=none]
+interface Job {
+  _id?: ObjectId;
+  name: string;
+  skills: string[];
+  company: {
+    _id: ObjectId;         
+    name: string;          
+    logo: string;          
+  };
+  location: string;
+  salary: number;
+  quantity: number;
+  level: string;
+  description: string;
+  startDate: Date;
+  endDate: Date;
+  isActive: boolean;   
+}
+    \end{lstlisting}
+    Mô tả schema công việc:
+    \begin{itemize}
+        \item \texttt{name}: Tên công việc
+        \item \texttt{skills}: Danh sách các kỹ năng yêu cầu (Ví dụ: \texttt{FRONTEND}, \texttt{BACKEND}, \texttt{REACT.JS}, ...)
+        \item \texttt{company}: Thông tin công ty đăng tuyển, bao gồm \texttt{\_id}, \texttt{name} và \texttt{logo}
+        \item \texttt{location}: Địa điểm làm việc
+        \item \texttt{salary}: Mức lương đề xuất
+        \item \texttt{quantity}: Số lượng cần tuyển
+        \item \texttt{level}: Cấp bậc công việc (\texttt{INTERN}, \texttt{FRESHER}, \texttt{JUNIOR}, \texttt{SENIOR})
+        \item \texttt{description}: Chi tiết về công việc và yêu cầu
+        \item \texttt{startDate} / \texttt{endDate}: Thời gian mở và đóng tuyển dụng
+        \item \texttt{isActive}: Trạng thái công việc (\texttt{true} - đang tuyển hoặc \texttt{false} - đã đóng)
+    \end{itemize}
+
+    %%%%%%%%%%%%%%%%%%%%%%%% Resume %%%%%%%%%%%%%%%%%%%%%%%%
+    \vspace{1mm}
+    \item \textbf{Resume Schema}: Lưu trữ thông tin về các hồ sơ ứng tuyển mà người dùng gửi cho công việc cụ thể.
+    \begin{lstlisting}[numbers=none]
+interface Resume {
+    _id?: ObjectId;
+    email: string;
+    userId: ObjectId;
+    url: string;
+    status: string;
+    companyId: ObjectId;
+    jobId: ObjectId; 
+}
+    \end{lstlisting}
+    Mô tả schema hồ sơ ứng tuyển:
+    \begin{itemize}
+        \item \texttt{email}: Email của người nộp hồ sơ
+        \item \texttt{userId}: Liên kết đến thông tin người dùng đã nộp hồ sơ
+        \item \texttt{url}: Đường dẫn tới file hồ sơ (CV) được tải lên
+        \item \texttt{status}: Trạng thái của hồ sơ (\texttt{PENDING} - đang chờ được xử lý, \texttt{REVIEWING} -  đang được xử lý, \texttt{APPROVED} - duyệt, \texttt{REJECTED} - bị từ chối)
+        \item \texttt{companyId}: Liên kết đến công việc mà hồ sơ đang ứng tuyển
+        \item \texttt{jobId}: Liên kết đến công ty có công việc mà hồ sơ đang ứng tuyển
+    \end{itemize}
+
+    %%%%%%%%%%%%%%%%%%%%%%%% Resume %%%%%%%%%%%%%%%%%%%%%%%%
+    \vspace{1mm}
+    \item \textbf{User Schema}: Lưu trữ thông tin tài khoản người dùng của hệ thống.
+    \begin{lstlisting}[numbers=none]
+interface User {
+    _id?: ObjectId;
+    name: string;
+    email: string;
+    password: string;
+    age: number;
+    gender: string;
+    address: string;
+    company?: {
+        _id: ObjectId;
+        name: string;
+    };
+    role?: ObjectId;
+    refreshToken?: string;  
+}
+    \end{lstlisting}
+    Mô tả schema người dùng:
+    \begin{itemize}
+        \item \texttt{name}: Tên của người dùng
+        \item \texttt{email}: Email sử dụng để đăng nhập
+        \item \texttt{password}: Mật khẩu
+        \item \texttt{age}: Tuổi
+        \item \texttt{gender}: Giới tính
+        \item \texttt{address}: Địa chỉ nơi ở của người dùng
+        \item \texttt{company}: Thông tin công ty liên quan nếu người dùng là nhà tuyển dụng
+        \item \texttt{role}: Vai trò của người dùng
+        \item \texttt{refreshToken}: Refresh token để làm mới phiên đăng nhập
+    \end{itemize}
+    
+    %%%%%%%%%%%%%%%%%%%%%%%% Role %%%%%%%%%%%%%%%%%%%%%%%%
+    \vspace{1mm}
+    \item \textbf{Role Schema}: Lưu trữ thông tin về các vai trò của hệ thống và liên kết với các quyền hạn (Permission Schema) thông qua danh sách \texttt{permissions}.
+    \begin{lstlisting}[style=ES6, numbers=none]
+interface Role {
+    _id?: ObjectId;
+    name: string;
+    description: string;
+    isActive: boolean;
+    permissions: ObjectId[];
+}
+    \end{lstlisting}
+    Mô tả schema vai trò:
+    \begin{itemize}
+        \item \texttt{name}: Tên của vai trò. Hiện tại hệ thống hỗ trợ các vai trò mặc định là \textbf{NORMAL\_USER} cho actor Người dùng và \textbf{SUPER\_ADMIN} cho actor Admin.
+        \item \texttt{description}: Mô tả chi tiết về vai trò và các chức năng mà vai trò có thể thực hiện
+        \item \texttt{isActive}: Trạng thái hoạt động của vai trò (\texttt{true} - còn hoạt động hoặc \texttt{}
+        \item \texttt{permissions}: Một mảng chứa \texttt{ObjectId} của các quyền hạn (Permission) liên quan đến vai trò đó
+    \end{itemize}
+
+    %%%%%%%%%%%%%%%%%%%%%%%% Permission %%%%%%%%%%%%%%%%%%%%%%%%
+    \vspace{2mm}
+    \item \textbf{Permission Schema}: Lưu trữ thông tin về các quyền cụ thể mà hệ thống định nghĩa, thường được liên kết với các API và phương thức tương ứng.
+    \begin{lstlisting}[numbers=none]
+interface Permission {
+    _id?: ObjectId;
+    name: string;
+    apiPath: string;
+    method: string;
+    module: string;
+}
+    \end{lstlisting}
+    Mô tả schema quyền hạn:
+    \begin{itemize}
+        \item \texttt{name}: Mô tả ngắn gọn cho quyền hạn
+        \item \texttt{apiPath}: Đường dẫn API cụ thể mà quyền này áp dụng (Ví dụ: \texttt{/api/v1/jobs}, \texttt{/api/v1/companies},...)
+        \item \texttt{method}: Phương thức HTTP được áp dụng (\texttt{GET}, \texttt{POST}, \texttt{PUT}, \texttt{PATCH} hoặc \texttt{DELETE})
+        \item \texttt{module}: Tên module hoặc chức năng của hệ thống mà quyền thuộc về (thuộc 1 trong 5 module ứng với từng schema ở trên), giúp phân loại quyền theo từng phần (Ví dụ: \texttt{JOBS}, \texttt{COMPANIES},...)
+    \end{itemize}
+\end{enumerate}

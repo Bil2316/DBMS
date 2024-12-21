@@ -1,0 +1,11 @@
+\subsection{Giới thiệu ứng dụng}
+Trong bài tập lớn này, nhóm đã phát triển ứng dụng \textbf{MatchJob} – một \textbf{website tìm kiếm việc làm} ngành Công nghệ thông tin, được lấy ý tưởng từ các nền tảng tìm việc làm  như ITViec, TopCV,... Ứng dụng tạo ra một nơi giúp người dùng tìm kiếm và ứng tuyển vào các công việc phù hợp, đặc biệt phù hợp với các bạn sinh viên trong ngành đang tìm kiếm cơ hội việc làm trong thời đại công nghệ phát triển ngày nay.
+
+Ứng dụng được phát triển bằng ngôn ngữ lập trình \textbf{JavaScript/TypeScript}, cùng các framework được dựa trên ngôn ngữ này, bao gồm:
+
+\begin{itemize}
+    \item \textbf{Frontend}: Sử dụng \textbf{ReactJS} để xây dựng giao diện người dùng, đóng vai trò là cầu nối trực quan giữa người dùng và hệ thống.
+    \item \textbf{Backend}: Sử dụng \textbf{NestJS}, một framework mạnh mẽ dựa trên Node.js, đóng vai trò trung gian điều phối giữa Frontend (tương tác từ phía người dung) và cơ sở dữ liệu, bằng cách cung cấp các API để xử lý yêu cầu từ phía người dùng.
+    \item \textbf{Database}: \textbf{MongoDB} được lựa chọn làm hệ quản trị cơ sở dữ liệu NoSQL, đóng vai trò lưu trữ và quản lý dữ liệu của toàn bộ hệ thống. Với khả năng lưu trữ linh hoạt dưới dạng document (JSON-like), MongoDB giúp ứng dụng \textbf{xử lý dữ liệu phi cấu trúc} phức tạp một cách hiệu quả.
+    \item \textbf{MongoDB Driver}: Là \textbf{thư viện chính thức} do MongoDB phát triển để hỗ trợ ứng dụng Node.js, dùng để kết nối và tương tác với cơ sở dữ liệu MongoDB. MongoDB Driver đảm bảo khả năng \textbf{giao tiếp trực tiếp} giữa backend NestJS và MongoDB, thực hiện các \textbf{truy vấn thuần trong MongoDB}. Đây là thành phần then chốt giúp tối ưu hóa truy vấn và đảm bảo tính ổn định của hệ thống.
+\end{itemize}

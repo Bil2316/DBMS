@@ -1,0 +1,66 @@
+\subsubsection{Kết nối Backend - Database}
+
+Trong hệ thống backend, nhóm tạo một module riêng biệt được dùng cho việc quản lý kết nối và truy cập đến cơ sở dữ liệu là \textbf{MongoModule}. Trong module này, \textbf{MongoService} là service được nhóm định nghĩa nhằm khởi tạo kết nối với database của hệ thống khi module khởi chạy và cung cấp đối tượng \texttt{Db} (đại diện cho cơ sở dữ liệu của hệ thống), thông qua một phương thức chung \texttt{getDatabase} cho các service khác sử dụng.
+
+\begin{lstlisting}
+import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { MongoClient, Db } from 'mongodb';
+
+@Injectable()
+export class MongoService implements OnModuleInit, OnModuleDestroy {
+    private client: MongoClient;    // Object MongoClient de quan ly ket noi
+    private db: Db;                 // Object Db de truy cap vao database
+
+    // Khoi tao ket noi khi module duoc khoi chay
+    async onModuleInit() {
+        const uri = process.env.MONGO_URI;
+        const dbName = process.env.MONGO_DB_NAME;
+        
+        this.client = new MongoClient(uri);
+        await this.client.connect();
+        this.db = this.client.db(dbName);
+        console.log(`Connected to MongoDB: ${dbName}`);
+    }
+
+    // Cung cap database cho cac module khac
+    getDatabase(): Db {
+        if (!this.db) {
+          throw new Error('Database connection is not initialized');
+        }
+        return this.db;
+    }
+
+    // Dong ket noi khi module bi huy
+    async onModuleDestroy() {
+        await this.client.close();
+        console.log('Disconnected from MongoDB');
+    }
+}
+\end{lstlisting}
+
+Khi đó, các module khác sẽ sử dụng \textbf{MongoService} đã khai báo ở trên để truy cập trực tiếp vào cơ sở dữ liệu của hệ thống để thực hiện các truy vấn cần thiết. Ví dụ, \textbf{JobsService} (nơi xử lý logic nghiệp vụ liên quan đến các thực thể công việc của hệ thống) sẽ \textbf{import} \textbf{MongoService} vào và thực hiện truy vấn "Danh sách các công việc đang tuyển dụng":
+
+\begin{lstlisting}
+import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Db } from 'mongodb';
+import { MongoService } from './mongo.service';
+
+@Injectable()
+export class JobsService implements OnModuleInit {
+    private db: Db;
+    constructor(private mongoService: MongoService) {}
+    
+    // Khoi tao database tu MongoService khi module khoi chay
+    onModuleInit() {
+        this.db = this.mongoService.getDatabase();
+    }
+    
+    // Vi du: Tra ve tat ca cac cong viec dang tuyen dung
+    async getAllJobs() {
+        return this.db      // Truy cap vao CSDL cua he thong
+        .collection('jobs') // Truy cap vao collection 'jobs'
+        .find({})           // Tim tat ca cac cong viec
+        .toArray();         // Chuyen ket qua ve dang mang
+    }
+}
+\end{lstlisting}

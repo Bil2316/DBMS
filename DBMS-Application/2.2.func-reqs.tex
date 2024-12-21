@@ -1,0 +1,32 @@
+\subsection{Yêu cầu chức năng}
+
+Hệ thống có 2 actor chính:
+\begin{itemize}
+    \item \textbf{Người dùng}: Tương tác trực tiếp với hệ thống để thực hiện các chức năng tìm kiếm công việc, nộp hồ sơ ứng tuyển và quản lý hồ sơ cá nhân.
+    \item \textbf{Quản trị viên}: Thực hiện các chức năng quản lý như thêm, sửa, xoá người dùng, công ty, công việc và hồ sơ ứng tuyển.
+\end{itemize}
+
+Dựa vào đó, các yêu cầu chức năng được phân loại như sau:
+\begin{table}[H]
+\centering
+\caption{Yêu cầu chức năng hệ thống chia theo Actor}
+\renewcommand{\arraystretch}{1.5} % Tăng khoảng cách giữa các dòng
+\begin{tabular}{|>{\centering\arraybackslash}m{3cm}|>{\centering\arraybackslash}m{4cm}|m{7cm}|}
+\hline
+\textbf{Actor} & \textbf{Tên}                        & \textbf{Mô tả}                                                                                  \\ \hline
+\multirow{7}{*}{\textbf{Người dùng}}
+ & Xem thông tin công ty           & Xem thông tin chi tiết về công ty như tên, mô tả, địa chỉ và các công việc đang tuyển dụng.      \\ \cline{2-3}
+ & Xem thông tin công việc         & Xem danh sách các công việc đang tuyển dụng.                                                     \\ \cline{2-3}
+ & Tìm công việc theo tiêu chí     & Tìm kiếm và lọc công việc theo tiêu chí như kỹ năng và địa điểm.                                 \\ \cline{2-3}
+ & Tải lên hồ sơ ứng tuyển         & Tải lên hồ sơ cá nhân (CV) để ứng tuyển vào công việc mong muốn.                                 \\ \cline{2-3}
+ & Ứng tuyển công việc             & Nộp hồ sơ trực tuyến cho các công việc đã chọn.                                                  \\ \cline{2-3}
+ & Quản lý hồ sơ cá nhân           & Xem lại các hồ sơ ứng tuyển ứng với từng công việc đã nộp.                                       \\ \cline{2-3}
+ & Xem thống kê kỹ năng tuyển dụng & Xem thống kê các kỹ năng phổ biến nhất trong các công việc đang được tuyển dụng.                 \\ \hline
+\multirow{4}{*}{\textbf{Quản trị viên}}
+ & Quản lý người dùng              & Thêm, cập nhật hoặc xoá thông tin người dùng.                                                   \\ \cline{2-3}
+ & Quản lý công ty                 & Thêm, cập nhật hoặc xoá thông tin các công ty trên hệ thống.                                     \\ \cline{2-3}
+ & Quản lý công việc               & Thêm, cập nhật hoặc xoá thông tin các công việc.                                                \\ \cline{2-3}
+ & Quản lý hồ sơ ứng tuyển         & Cập nhật trạng thái hồ sơ ứng tuyển hoặc xoá hồ sơ không phù hợp hoặc vi phạm chính sách.       \\ \hline
+\end{tabular}
+\label{tab:functional_requirements_by_actor}
+\end{table}
