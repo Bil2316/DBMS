@@ -227,7 +227,7 @@ db.users.find({ user_id: 12345 });
 \end{itemize}
 
 
-\subsubsection{So sánh và kết luận}
+\subsubsection{So sánh}
 \begin{itemize}
     \item Đa dạng loại index: PostgreSQL hỗ trợ nhiều loại index phức tạp hơn phù hợp cho các truy vấn phức tạp và dữ liệu quan hệ, trong khi MongoDB tập trung vào các loại index phù hợp với dữ liệu không cấu trúc và dễ thay đổi.
     \item Ứng dụng và tối ưu hóa: PostgreSQL thường được sử dụng trong các ứng dụng đòi hỏi tính toàn vẹn, với các chỉ mục như GiST và GIN. Ngược lại, MongoDB phù hợp với các ứng dụng yêu cầu tốc độ và tính linh hoạt cao, với các chỉ mục như Multi-key và Geospatial.
@@ -244,8 +244,6 @@ db.users.find({ user_id: 12345 });
     \caption{So sánh về Indexing giữa PostgreSQL và MongoDB}
     \label{tab:indexing}
 \end{table}
-\indent \textbf{Kết luận:}
-
 \newpage
 
 

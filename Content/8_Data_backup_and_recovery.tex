@@ -301,7 +301,7 @@ rs.initiate({
     \end{enumerate}
 \end{enumerate}
 
-\subsubsection{So sánh và kết luận}
+\subsubsection{So sánh}
 \begin{itemize}
     \item Backup Logic: PostgreSQL sử dụng công cụ pg\_dump để sao lưu dữ liệu dưới dạng SQL, dễ đọc nhưng tốc độ chậm với cơ sở dữ liệu lớn, trong khi MongoDB dùng mongodump, lưu dữ liệu dưới dạng BSON, phù hợp và nhanh hơn với dữ liệu nhỏ và vừa.
     \item Backup Vật Lý: PostgreSQL hỗ trợ pg\_basebackup hoặc snapshot ở cấp độ file, còn MongoDB hỗ trợ backup thông qua snapshot hệ thống file hoặc các dịch vụ lưu trữ đám mây.
@@ -322,5 +322,4 @@ rs.initiate({
     \caption{So sánh về Data backup and recovery giữa PostgreSQL và MongoDB}
     \label{tab:data_backup_and_recovery}
 \end{table}
-\indent \textbf{Kết luận:}
 \newpage

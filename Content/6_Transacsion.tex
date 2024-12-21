@@ -217,7 +217,7 @@ with client.start_session() as session:
 
 
 Nếu giao dịch thành công, một tài liệu mới sẽ được thêm vào bộ sưu tập candidates với đầy đủ thông tin như candidate\_id, full\_name, gender, age, phone\_number, email, address, skills, gpa, major, graduation\_year, job\_title, level, và expected\_salary (vnd). Sau đó, tài liệu này sẽ được cập nhật với tên mới là "Nguyen Van B" và mức lương kỳ vọng thay đổi thành 25,000,000 VND. Ngược lại, nếu xảy ra lỗi như lỗi kết nối hoặc thao tác không hợp lệ, giao dịch sẽ bị hủy để giữ nguyên trạng thái dữ liệu, và thông báo lỗi sẽ được in ra màn hình dưới dạng: "Đã xảy ra lỗi: <thông tin lỗi>".
-\subsubsection{So sánh và kết luận}
+\subsubsection{So sánh}
 \begin{itemize}
     \item Mô hình dữ liệu: PostgreSQL sử dụng mô hình quan hệ, trong đó dữ liệu được tổ chức trong bảng với schema cố định, trong khi MongoDB sử dụng mô hình NoSQL, lưu trữ dữ liệu dưới dạng tài liệu và hỗ trợ schema linh hoạt.
     \item Hỗ trợ ACID: PostgreSQL hỗ trợ đầy đủ các thuộc tính ACID trên mọi giao dịch, bao gồm giao dịch liên quan đến nhiều bảng, trong khi MongoDB chỉ hỗ trợ ACID trên các giao dịch nhiều tài liệu từ phiên bản 4.0.
@@ -244,5 +244,4 @@ Nếu giao dịch thành công, một tài liệu mới sẽ được thêm vào
     \caption{So sánh về Transaction giữa PostgreSQL và MongoDB}
     \label{tab:transaction}
 \end{table}
-\indent \textbf{Kết luận:}
 \newpage

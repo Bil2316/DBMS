@@ -243,7 +243,7 @@ MongoDB, thông qua công cụ lưu trữ WiredTiger, áp dụng phương pháp 
         \item Điều chỉnh kích thước bộ đệm: Kích thước bộ đệm có thể điều chỉnh qua storage.wiredTiger.engineConfig.cacheSizeGB và --wiredTigerCacheSizeGB. Tránh tăng vượt mức mặc định.
     \end{itemize}
 \end{enumerate}
-\subsubsection{So sánh và kết luận}
+\subsubsection{So sánh}
 \begin{itemize}
     \item Cơ chế chính: PostgreSQL sử dụng MVCC (Multi-Version Concurrency Control) để quản lý đồng thời, trong khi MongoDB sử dụng Document-Level Locking kết hợp Snapshot Isolation.
     \item Cấp độ Lock: PostgreSQL hỗ trợ khóa ở cấp row và table, còn MongoDB chỉ khóa ở cấp document, giúp giảm phạm vi ảnh hưởng.
@@ -270,5 +270,4 @@ MongoDB, thông qua công cụ lưu trữ WiredTiger, áp dụng phương pháp 
     \caption{So sánh về Concurrency control giữa PostgreSQL và MongoDB}
     \label{tab:concurrency_control}
 \end{table}
-\indent \textbf{Kết luận:}
 \newpage
