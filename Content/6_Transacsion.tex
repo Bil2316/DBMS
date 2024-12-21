@@ -1,0 +1,248 @@
+\subsection{Transaction}
+\subsubsection{Lý thuyết}
+\indent Trong Hệ Quản Trị Cơ Sở Dữ Liệu (DBMS), giao dịch là một khái niệm cốt lõi đại diện cho một tập hợp các thao tác logic được thực thi như một đơn vị duy nhất. Giao dịch đóng vai trò quan trọng trong việc xử lý các yêu cầu của người dùng nhằm truy cập và chỉnh sửa nội dung cơ sở dữ liệu, đảm bảo cơ sở dữ liệu luôn nhất quán và đáng tin cậy dù có nhiều thao tác hoặc gián đoạn xảy ra.\\
+
+\indent Các thao tác chính của giao dịch:
+\begin{enumerate}
+    \item[1.] Read(X): Lấy giá trị X từ cơ sở dữ liệu và lưu vào bộ nhớ đệm. Ví dụ như kiểm tra số dư tài khoản.
+    \item[2.] Write(X): Ghi giá trị từ bộ nhớ đệm vào cơ sở dữ liệu. Ví dụ như rút tiền từ tài khoản.
+    \item[3.] Commit: Lưu các thay đổi của giao dịch vào cơ sở dữ liệu vĩnh viễn.
+    \item[4.] Rollback: Hoàn tác giao dịch, đưa cơ sở dữ liệu về trạng thái trước đó khi giao dịch bị lỗi. 
+\end{enumerate}
+
+\indent Thuộc tính ACID:
+\begin{enumerate}
+    \item[1.] Atomicity: Giao dịch thực hiện toàn bộ hoặc không thực hiện gì.
+    \item[2.] Consistency: Đảm bảo cơ sở dữ liệu nhất quán trước và sau giao dịch.
+    \item[3.] Isolation: Các giao dịch không can thiệp lẫn nhau.
+    \item[4.] Durability: Thay đổi được lưu vĩnh viễn sau khi giao dịch hoàn tất. 
+\end{enumerate}
+\subsubsection{Transaction trong PostgreSQL}
+\indent Giao dịch là một khái niệm cốt lõi trong mọi hệ thống cơ sở dữ liệu. Điểm mấu chốt của một giao dịch là nó gói gọn nhiều bước thành một thao tác duy nhất với tính chất "tất cả hoặc không có gì". Các trạng thái trung gian giữa các bước không hiển thị đối với các giao dịch đồng thời khác, và nếu xảy ra sự cố ngăn giao dịch hoàn tất, thì không bước nào ảnh hưởng đến cơ sở dữ liệu.\\
+
+PostgreSQL đảm bảo rằng các giao dịch tuân thủ đầy đủ các thuộc tính của mô hình ACID:
+\begin{itemize}
+    \item Tính toàn vẹn (Atomicity): Sử dụng cơ chế ghi nhật ký WAL (Write-Ahead Logging) để đảm bảo giao dịch được thực hiện hoàn toàn hoặc bị hủy bỏ hoàn toàn.
+    \item Tính nhất quán (Consistency): Kiểm tra các ràng buộc dữ liệu (khóa chính, khóa ngoại, CHECK) để duy trì trạng thái hợp lệ của cơ sở dữ liệu sau giao dịch.
+    \item Tính cách ly (Isolation): Hỗ trợ các mức cách ly như Read Committed, Repeatable Read, và Serializable để ngăn giao dịch bị ảnh hưởng bởi giao dịch khác.
+    \item Tính bền vững (Durability): Cơ chế WAL đảm bảo thay đổi giao dịch được lưu vĩnh viễn, kể cả khi hệ thống gặp sự cố.
+\end{itemize}
+
+Trong quá trình thực thi, PostgreSQL đảm bảo trạng thái trung gian của giao dịch không hiển thị với các giao dịch đồng thời, tùy thuộc vào mức cách ly. Điều này giúp duy trì tính nhất quán và độ tin cậy của dữ liệu ngay cả khi xảy ra sự cố.\\
+
+Ví dụ, bảng dữ liệu ứng viên gồm các cột như candidate\_id, full\_name, gender, age, phone\_number, email, address, skills, gpa, major, graduation\_year, job\_title, level, và expected\_salary(vnd). Trong một giao dịch, cần thực hiện các thao tác: giảm lương kỳ vọng của "Nguyen Van A" do đồng ý mức thấp hơn, thêm kỹ năng "Python" vào danh sách kỹ năng, và cập nhật chức danh công việc thành "Junior" nếu tốt nghiệp năm 2023. Giao dịch đảm bảo các thay đổi được thực hiện đồng nhất, không có trạng thái trung gian.\\
+
+Mã SQL thực hiện giao dịch như sau: Đầu tiên, sử dụng lệnh UPDATE để giảm 2,000,000 VND từ mức lương kỳ vọng của ứng viên "Nguyen Van A". Tiếp theo, thêm kỹ năng "Python" vào danh sách kỹ năng hiện tại bằng hàm CONCAT. Cuối cùng, nếu ứng viên tốt nghiệp năm 2023, cập nhật chức danh công việc thành "Junior".
+\begin{lstlisting}
+-- 1. Giam muc luong ky vong cua ung vien "Nguyen Van A".
+UPDATE candidates 
+SET expected_salary = expected_salary - 2000000
+WHERE candidate_id = 101 AND full_name = 'Nguyen Van A';
+
+-- 2. Them ky nang "Python" vao danh sach ky nang cua ung vien.
+UPDATE candidates 
+SET skills = CONCAT(skills, ', Python')
+WHERE candidate_id = 101 AND full_name = 'Nguyen Van A';
+
+-- 3. Cap nhat chuc danh cong viec neu ung vien da tot nghiep nam 2023.
+UPDATE candidates 
+SET job_title = 'Junior Developer'
+WHERE candidate_id = 101 AND graduation_year = 2023;
+\end{lstlisting}
+
+Giao dịch đảm bảo:
+\begin{itemize}
+    \item Tính nguyên tử (atomicity): Mọi thay đổi được thực hiện đồng thời hoặc không thay đổi nào được lưu nếu xảy ra lỗi. Ví dụ, nếu gặp lỗi khi thêm kỹ năng mới (như giá trị cột skills bị NULL), giao dịch sẽ tự động hủy, trả cơ sở dữ liệu về trạng thái ban đầu. Điều này loại trừ tình trạng dữ liệu không đồng bộ, như lương đã giảm nhưng kỹ năng mới chưa được thêm.
+    \item Tính nhất quán (consistency): Mọi thay đổi đều dựa trên dữ liệu hợp lệ và các điều kiện đã đặt ra. Chẳng hạn, cập nhật chức danh chỉ thực hiện nếu ứng viên tốt nghiệp năm 2023, đảm bảo cơ sở dữ liệu chuyển từ trạng thái nhất quán này sang trạng thái nhất quán khác.
+    \item Tính cách ly (isolation): Các giao dịch khác không nhìn thấy trạng thái trung gian của giao dịch đang thực hiện. Ví dụ, thay đổi về lương hoặc thêm kỹ năng mới chỉ hiển thị sau khi giao dịch hoàn tất với lệnh COMMIT. Điều này ngăn ngừa xung đột dữ liệu trong môi trường nhiều người dùng hoặc giao dịch đồng thời.
+    \item Tính lâu dài (durability): Khi giao dịch hoàn tất, mọi thay đổi được ghi nhận vĩnh viễn. Ngay cả khi hệ thống gặp sự cố, dữ liệu như lương mới, kỹ năng mới và chức danh công việc vẫn không bị mất, nhờ được lưu trong nhật ký giao dịch (transaction log).
+\end{itemize}
+
+Giao dịch đảm bảo mọi thay đổi liên quan đến dữ liệu của ứng viên "Nguyen Van A" được thực hiện an toàn, nhất quán và không để lại trạng thái trung gian, giúp duy trì tính toàn vẹn dữ liệu và nâng cao độ tin cậy của hệ thống.\\
+
+Trong PostgreSQL, giao dịch có thể được thiết lập bằng cách bao quanh các câu lệnh SQL của giao dịch bằng các lệnh BEGIN và COMMIT.\\
+\begin{lstlisting}
+BEGIN;
+-- Giam muc luong ky vong cua ung vien "Nguyen Van A".
+UPDATE candidates 
+SET expected_salary = expected_salary - 2000000
+WHERE candidate_id = 101 AND full_name = 'Nguyen Van A';
+-- v.v
+COMMIT;
+\end{lstlisting}
+
+Giao dịch bắt đầu bằng lệnh BEGIN và kết thúc bằng COMMIT. Các thay đổi (giảm lương, thêm kỹ năng, cập nhật chức danh) chỉ có hiệu lực sau khi COMMIT được thực thi, đảm bảo tất cả thao tác được thực hiện đồng thời. Nếu xảy ra lỗi (ví dụ, không thỏa mãn điều kiện), giao dịch sẽ bị hủy và cơ sở dữ liệu không bị ảnh hưởng.\\
+
+PostgreSQL mặc định thực thi mỗi lệnh SQL trong một giao dịch ngầm và tự động COMMIT nếu lệnh thành công. Tuy nhiên, sử dụng BEGIN và COMMIT cho phép nhóm nhiều câu lệnh thành một giao dịch duy nhất, đảm bảo tính toàn vẹn dữ liệu.\\
+
+Nếu trong quá trình giao dịch có vấn đề (như lương giảm quá thấp hoặc dữ liệu sai), bạn có thể hủy bỏ bằng lệnh ROLLBACK thay vì COMMIT, đảm bảo không có thay đổi nào được lưu vào cơ sở dữ liệu.\\
+
+\begin{lstlisting}
+BEGIN;
+-- Giam muc luong ky vong cua ung vien "Nguyen Van A".
+UPDATE candidates 
+SET expected_salary = expected_salary - 2000000
+WHERE candidate_id = 101 AND full_name = 'Nguyen Van A';
+-- v.v
+-- Neu phat hien su co, huy giao dich
+ROLLBACK;
+\end{lstlisting}
+
+Với PostgreSQL, bạn có thể sử dụng savepoints để kiểm soát các câu lệnh trong giao dịch một cách chi tiết hơn. Savepoints cho phép bạn quay lại một điểm cụ thể trong giao dịch mà không làm ảnh hưởng đến các thay đổi đã thực hiện trước đó. Đây là một ví dụ về cách sử dụng savepoint trong một giao dịch:
+\begin{lstlisting}
+BEGIN;
+
+-- Giam muc luong ky vong cua ung vien "Nguyen Van A"
+UPDATE candidates 
+SET expected_salary = expected_salary - 2000000
+WHERE candidate_id = 101 AND full_name = 'Nguyen Van A';
+
+-- Dat mot savepoint truoc khi cap nhat ky nang
+SAVEPOINT my_savepoint;
+
+-- Them ky nang "Python" vao danh sach ky nang cua ung vien
+UPDATE candidates 
+SET skills = CONCAT(skills, ', Python')
+WHERE candidate_id = 101 AND full_name = 'Nguyen Van A';
+
+-- Quay lai savepoint de loai bo thay doi ky nang
+ROLLBACK TO my_savepoint;
+
+-- Cap nhat chuc danh cong viec cua ung vien neu ho da tot nghiep nam 2023
+UPDATE candidates 
+SET job_title = 'Junior Developer'
+WHERE candidate_id = 101 AND graduation_year = 2023;
+
+-- Cam ket cac thay doi da thuc hien
+COMMIT;
+\end{lstlisting}
+
+Trong ví dụ trên, giao dịch bắt đầu với lệnh BEGIN. Sau khi giảm mức lương kỳ vọng của ứng viên "Nguyen Van A", một điểm lưu được đặt bằng lệnh SAVEPOINT my\_savepoint trước khi thêm kỹ năng "Python". Khi phát hiện việc thêm kỹ năng không cần thiết, lệnh ROLLBACK TO my\_savepoint được sử dụng để loại bỏ thay đổi này nhưng vẫn giữ lại các thay đổi trước đó, như giảm mức lương kỳ vọng.\\
+
+Cuối cùng, sau khi hoàn tất các thay đổi cần thiết (bao gồm cập nhật chức danh công việc), giao dịch kết thúc bằng lệnh COMMIT, đảm bảo tất cả thay đổi đã cam kết được ghi vào cơ sở dữ liệu.\\
+
+Việc sử dụng savepoints cho phép kiểm soát linh hoạt trong giao dịch, giúp quay lại một điểm cụ thể mà không cần hủy toàn bộ giao dịch. Ngoài ra, ROLLBACK TO là giải pháp duy nhất để khôi phục một giao dịch đã bị lỗi, ngoại trừ việc hủy bỏ hoàn toàn và bắt đầu lại.\\
+
+\subsubsection{Transaction trong MongoDB}
+\indent Giao dịch MongoDB là tính năng cốt lõi đảm bảo tính toàn vẹn và độ tin cậy của dữ liệu thông qua ACID. Từ phiên bản 4.0, MongoDB hỗ trợ giao dịch ACID đa tài liệu, cho phép thực hiện các thao tác phức tạp trên nhiều tài liệu và bộ sưu tập trong một giao dịch duy nhất. Giao dịch này kết hợp các thao tác thành một đơn vị thống nhất, đảm bảo thực thi theo nguyên tắc "tất cả hoặc không có gì."\\
+
+Điều này có nghĩa, nếu bất kỳ thao tác nào trong giao dịch thất bại, toàn bộ giao dịch sẽ bị hủy, và không thay đổi nào được áp dụng lên cơ sở dữ liệu. Cơ chế này bảo vệ tính toàn vẹn dữ liệu, duy trì trạng thái nhất quán ngay cả khi gặp sự cố, đồng thời ngăn ngừa lỗi hoặc dữ liệu không đầy đủ.\\
+
+Thuật ngữ ACID đại diện cho bốn đặc tính trong quản lý giao dịch: Nguyên tử, Nhất quán, Cô lập, và Bền vững. Các giao dịch ACID trong MongoDB đảm bảo dữ liệu luôn toàn vẹn và nhất quán, cho phép thực hiện nhiều thao tác trên tài liệu, bộ sưu tập, cơ sở dữ liệu, hoặc phân đoạn như một đơn vị nguyên tử. MongoDB hỗ trợ giao dịch ACID đa tài liệu và phân tán, đảm bảo tính nguyên tử và nhất quán khi thực hiện thay đổi trên nhiều tài liệu hoặc trong hệ thống phân tán.\\
+
+Giao dịch MongoDB xử lý các thao tác như một đơn vị nguyên tử, nghĩa là nếu tất cả thao tác thành công, giao dịch sẽ được hoàn tất. Ngược lại, nếu bất kỳ thao tác nào thất bại, mọi thay đổi sẽ bị hủy, đảm bảo hệ thống luôn ở trạng thái nhất quán.\\
+
+Tính nhất quán được đảm bảo trong quá trình đồng bộ hóa giữa các tài liệu và bộ sưu tập. MongoDB hỗ trợ giao dịch đa tài liệu trên nhiều bộ sưu tập và cơ sở dữ liệu, giúp đơn giản hóa việc quản lý và duy trì tính toàn vẹn dữ liệu.\\
+
+Giao dịch MongoDB rất hữu ích cho các ứng dụng yêu cầu trao đổi giá trị giữa các bên, như hệ thống ngân hàng, chuỗi cung ứng, hoặc nền tảng thương mại điện tử. Giao dịch ACID đảm bảo mọi bước trong quy trình, chẳng hạn chuyển tiền hoặc chuyển giao quyền sở hữu hàng hóa, được thực hiện chính xác và không xảy ra sự cố.\\
+
+MongoDB cung cấp hai loại API để thực hiện giao dịch:
+\begin{itemize}
+    \item API cốt lõi: yêu cầu các lệnh gọi rõ ràng để bắt đầu và cam kết giao dịch.
+    \item API gọi lại: tự động xử lý giao dịch, thực hiện các thao tác được chỉ định và cam kết hoặc hủy bỏ khi có lỗi.
+\end{itemize}
+
+Để tạo một phiên giao dịch, bạn có thể sử dụng MongoDB shell để bắt đầu giao dịch và thực hiện các thao tác trong đó. Nếu phiên giao dịch kéo dài hơn 60 giây sau khi gọi phương thức startTransaction(), MongoDB sẽ tự động hủy bỏ giao dịch để đảm bảo không có giao dịch nào kéo dài quá lâu và ảnh hưởng đến hiệu suất hệ thống.\\
+
+
+Giao dịch trong cơ sở dữ liệu MongoDB đảm bảo tính hợp lệ của dữ liệu bất chấp các sự gián đoạn và lỗi thông qua bốn thuộc tính cốt lõi: tính nguyên tử, tính nhất quán, tính cô lập và tính bền vững.
+\begin{itemize}
+    \item Tính nguyên tử: Đảm bảo giao dịch là một khối thống nhất. Nếu bất kỳ thao tác nào thất bại, toàn bộ giao dịch sẽ bị hủy để ngăn dữ liệu không nhất quán.
+    \item Tính nhất quán: Cơ sở dữ liệu luôn duy trì trạng thái hợp lệ. Giao dịch vi phạm nguyên tắc nhất quán sẽ bị hủy bỏ.
+    \item Tính cô lập: Giao dịch đồng thời không ảnh hưởng lẫn nhau. Trạng thái trung gian không hiển thị cho giao dịch khác cho đến khi hoàn tất.
+    \item Tính bền vững: Sau khi hoàn tất, mọi thay đổi được lưu vĩnh viễn, ngay cả khi hệ thống gặp sự cố.
+\end{itemize}
+
+Mặc dù giao dịch trong MongoDB mang lại nhiều lợi ích, nhưng cũng có một số nhược điểm cần được lưu ý. Dưới đây là một số yếu tố nhược điểm khi sử dụng giao dịch trong MongoDB:
+\begin{itemize}
+    \item Tác động đến hiệu suất: Giao dịch có thể làm giảm hiệu suất hệ thống, đặc biệt khi ghi dữ liệu lớn, do yêu cầu khóa và đồng bộ hóa giữa các tài liệu và bộ sưu tập, gây thêm chi phí xử lý.
+    \item Độ phức tạp: Quản lý giao dịch trong MongoDB có thể phức tạp, đặc biệt với các nhà phát triển chưa quen với hệ thống phân tán. Việc xử lý giao dịch trên nhiều tài liệu và phân đoạn đòi hỏi hiểu biết sâu, khiến việc triển khai trở nên thách thức hơn.
+\end{itemize}
+
+Ví dụ ta có một bộ dữ liệu MongoDB chứa thông tin về các ứng viên, với các trường như candidate\_id, full\_name, gender, age, phone\_number, email, address, skills, gpa, major, graduation\_year, job\_title, level, và expected\_salary.
+\begin{lstlisting}
+    from pymongo import MongoClient
+
+client = MongoClient("mongodb://localhost:27017")
+database = client["your_database"]
+
+with client.start_session() as session:
+    session.start_transaction()
+    try:
+        # Vi du ve viec them mot ung vien moi
+        database.candidates.insert_one({
+            "candidate_id": "1001",
+            "full_name": "Nguyen Van A",
+            "gender": "Nam",
+            "age": 31,
+            "phone_number": "0123456789",
+            "email": "nguyen.vana@example.com",
+            "address": "123 Duong Vi du, Thanh pho, Viet Nam",
+            "skills": ["Python", "Hoc may", "Phan tich du lieu"],
+            "gpa": 3.8,
+            "major": "Khoa hoc may tinh",
+            "graduation_year": 2022,
+            "job_title": "Ky su phan mem",
+            "level": "Junior",
+            "expected_salary(vnd)": 20000000
+        }, session=session)
+
+        # Vi du ve viec cap nhat thong tin mot ung vien da co
+        database.candidates.update_one(
+            {"candidate_id": "1001"},
+            {"$set": {
+                "full_name": "Nguyen Van B",
+                "expected_salary(vnd)": 25000000
+            }},
+            session=session
+        )
+
+        # Xac nhan giao dich
+        session.commit_transaction()
+    except Exception as e:
+        # Huy giao dich neu co loi
+        print("Da xay ra loi:", e)
+        session.abort_transaction()
+
+\end{lstlisting}
+
+Đoạn mã Python sử dụng thư viện pymongo để kết nối và thao tác với MongoDB. Mã thực hiện giao dịch nhằm đảm bảo tính toàn vẹn dữ liệu: thêm một tài liệu mới vào bộ sưu tập candidates và cập nhật thông tin ứng viên hiện có. Nếu giao dịch thành công, các thay đổi được cam kết (commit); nếu xảy ra lỗi, giao dịch sẽ bị hủy (abort) để đảm bảo dữ liệu không bị ảnh hưởng sai lệch.
+\begin{itemize}
+    \item start\_session(): Phương thức trong PyMongo để bắt đầu một phiên làm việc mới, cho phép thực hiện các thao tác đọc/ghi dữ liệu trong phạm vi của một giao dịch.
+    \item start\_transaction(): Khởi tạo giao dịch mới trong phiên làm việc, đảm bảo tuân thủ các đặc tính ACID. Nếu có lỗi, giao dịch có thể bị hủy và các thay đổi sẽ được hoàn lại.
+    \item commit\_transaction(): Xác nhận tất cả thay đổi trong giao dịch, làm chúng trở thành vĩnh viễn và hiển thị cho các phiên khác.
+    \item abort\_transaction(): Hủy giao dịch khi xảy ra lỗi, hoàn lại toàn bộ thay đổi để giữ nguyên trạng thái dữ liệu ban đầu.
+    \item withTransaction: Công cụ tiện ích của MongoDB driver, tự động quản lý giao dịch (bắt đầu, cam kết hoặc hủy) bằng cách bao bọc các thao tác trong một hàm, đơn giản hóa mã lệnh.
+\end{itemize}
+
+
+Nếu giao dịch thành công, một tài liệu mới sẽ được thêm vào bộ sưu tập candidates với đầy đủ thông tin như candidate\_id, full\_name, gender, age, phone\_number, email, address, skills, gpa, major, graduation\_year, job\_title, level, và expected\_salary (vnd). Sau đó, tài liệu này sẽ được cập nhật với tên mới là "Nguyen Van B" và mức lương kỳ vọng thay đổi thành 25,000,000 VND. Ngược lại, nếu xảy ra lỗi như lỗi kết nối hoặc thao tác không hợp lệ, giao dịch sẽ bị hủy để giữ nguyên trạng thái dữ liệu, và thông báo lỗi sẽ được in ra màn hình dưới dạng: "Đã xảy ra lỗi: <thông tin lỗi>".
+\subsubsection{So sánh và kết luận}
+\begin{itemize}
+    \item Mô hình dữ liệu: PostgreSQL sử dụng mô hình quan hệ, trong đó dữ liệu được tổ chức trong bảng với schema cố định, trong khi MongoDB sử dụng mô hình NoSQL, lưu trữ dữ liệu dưới dạng tài liệu và hỗ trợ schema linh hoạt.
+    \item Hỗ trợ ACID: PostgreSQL hỗ trợ đầy đủ các thuộc tính ACID trên mọi giao dịch, bao gồm giao dịch liên quan đến nhiều bảng, trong khi MongoDB chỉ hỗ trợ ACID trên các giao dịch nhiều tài liệu từ phiên bản 4.0.
+    \item Giao dịch nhiều bảng: PostgreSQL được tối ưu hóa để xử lý các giao dịch giữa các bảng có mối quan hệ chặt chẽ, trong khi MongoDB cũng hỗ trợ giao dịch nhiều tài liệu nhưng hiệu năng có thể bị giảm khi giao dịch phức tạp.
+    \item Isolation Levels: PostgreSQL cung cấp đầy đủ các mức độ cô lập giao dịch như Read Uncommitted, Read Committed, Repeatable Read, và Serializable, trong khi MongoDB chủ yếu hỗ trợ mức cô lập tương tự Read Committed.
+    \item Concurrency Control: PostgreSQL sử dụng cơ chế MVCC (Multi-Version Concurrency Control) để quản lý truy cập đồng thời hiệu quả, trong khi MongoDB áp dụng snapshot isolation qua engine WiredTiger.
+    \item Hiệu năng: PostgreSQL có hiệu năng vượt trội khi xử lý giao dịch phức tạp và liên quan đến nhiều bảng, trong khi MongoDB hoạt động tốt hơn với các giao dịch đơn giản trên tài liệu.
+    \item Hạn chế giao dịch: PostgreSQL không gặp bất kỳ hạn chế nào trong việc thực hiện giao dịch đa bảng hoặc phức tạp, trong khi MongoDB giới hạn các giao dịch ACID trong một cluster hoặc replica set.
+    \item Quản lý dữ liệu: PostgreSQL yêu cầu dữ liệu phải tuân theo schema chặt chẽ, điều này lý tưởng cho các hệ thống phức tạp, trong khi MongoDB linh hoạt hơn, phù hợp với các ứng dụng cần thay đổi cấu trúc dữ liệu nhanh chóng.
+\end{itemize}
+\begin{table}[H]
+    \centering
+    \begin{tabular}{|L{3.2cm}|L{5.05cm}|L{5.05cm}|} \hline 
+         \textbf{Tiêu chí so sánh }&  \textbf{PostgreSQL}&  \textbf{MongoDB}\\ \hline 
+         Mô hình dữ liệu & Quan hệ (dữ liệu trong bảng, schema cố định) & NoSQL (dữ liệu dạng tài liệu, schema linh hoạt)\\ \hline 
+         Hỗ trợ ACID & Hoàn toàn hỗ trợ ACID trên từng giao dịch, bao gồm cả các bảng liên quan. & Hỗ trợ ACID trên các giao dịch nhiều tài liệu kể từ MongoDB 4.0.\\ \hline
+         Giao dịch nhiều bảng & Hoàn toàn hỗ trợ, được tối ưu cho các bảng có quan hệ chặt chẽ. & Hỗ trợ, nhưng hiệu năng có thể giảm nếu giao dịch liên quan nhiều tài liệu.\\ \hline
+         Isolation Levels & Đầy đủ các mức độ cô lập: Read Uncommitted, Read Committed, Repeatable Read, Serializable. & Cơ bản hỗ trợ mức độ cô lập giống Read Committed (không hỗ trợ tất cả các mức).\\ \hline
+         Concurrency Control & MVCC (Multi-Version Concurrency Control) giúp quản lý truy cập đồng thời hiệu quả. & WiredTiger engine sử dụng cơ chế snapshot isolation.\\ \hline
+         Performance (hiệu năng) & Giao dịch phức tạp, nhiều bảng thường nhanh hơn vì được thiết kế tối ưu cho RDBMS. & Hiệu năng tốt với giao dịch đơn giản trên tài liệu. Giao dịch phức tạp có thể chậm hơn.\\ \hline
+         Hạn chế giao dịch & Không có hạn chế đặc biệt với giao dịch đa bảng hoặc phức tạp. & Giao dịch ACID chỉ hoạt động trong một cụm shard (cluster) hoặc replica set.\\ \hline
+         Quản lý dữ liệu & Dữ liệu phải tuân theo schema chặt chẽ, cần thiết cho giao dịch phức tạp. & Dữ liệu linh hoạt, thích hợp cho các ứng dụng cần thay đổi nhanh chóng.\\ \hline
+    \end{tabular}
+    \caption{So sánh về Transaction giữa PostgreSQL và MongoDB}
+    \label{tab:transaction}
+\end{table}
+\indent \textbf{Kết luận:}
+\newpage

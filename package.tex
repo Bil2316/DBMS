@@ -1,0 +1,209 @@
+\usepackage[utf8]{inputenc}
+\usepackage[vietnam]{babel}
+\usepackage[utf8]{vietnam}
+\usepackage{indentfirst}
+\usepackage{pdfpages}
+\usepackage{a4wide,amssymb,epsfig,latexsym,multicol,array,hhline,fancyhdr}
+\usepackage{fourier}
+\usepackage{soul}
+\usepackage{titling}
+\usepackage{longtable}
+\usepackage{gensymb}
+\usepackage{afterpage}
+\usepackage{enumitem}
+\usepackage{breakurl}
+\usepackage{vntex}
+\usepackage{amsmath}
+\usepackage{lastpage}
+\usepackage{xcolor}
+\usepackage{tocloft}
+\usepackage{bm}
+\usepackage{sectsty}
+\usepackage[lined,boxed,commentsnumbered]{algorithm2e}
+\usepackage{url}
+\usepackage[%  
+    colorlinks=true,
+    pdfborder={0 0 0},
+    urlcolor=black,
+    linkcolor=black,
+    citecolor=black
+]{hyperref}
+\usepackage{listings}
+\usepackage{float}
+\usepackage{enumerate}
+\usepackage{subcaption}
+\usepackage{graphicx}							% Standard graphics package
+\usepackage{array}
+\usepackage{tabularx, caption}
+\usepackage{multirow}
+\usepackage{multicol}
+\usepackage{rotating}
+\usepackage{graphics}
+\usepackage{geometry}
+\usepackage{setspace}
+\usepackage{epsfig}
+\usepackage{tikz,pgf,tkz-tab}
+\usetikzlibrary{arrows,snakes,backgrounds}
+\usepackage{hyperref}
+\usepackage{chngcntr}
+\usepackage{listings}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{amsmath,systeme,amssymb,latexsym,amsfonts, bbm,mathtools, enumitem,esvect,commath,pifont}
+\usepackage[backend=biber, style=alphabetic, sorting=ynt]{biblatex}
+\usepackage{cleveref}
+\usepackage{xspace}
+\usepackage{xparse}
+\usepackage{tabvar}
+\usepackage{titlesec} 
+\usepackage{lipsum}
+\usepackage{makecell}
+\usepackage{pifont}
+
+\NewDocumentCommand{\code}{v}{%
+\texttt{\textcolor{purple}{#1}}%
+}
+\NewDocumentCommand{\parameter}{v}{%
+\texttt{\textcolor{black}{#1}}%
+}
+
+% Table width
+\usepackage{array}
+\newcommand{\PreserveBackslash}[1]{\let\temp=\\#1\let\\=\temp}
+\newcolumntype{C}[1]{>{\PreserveBackslash\centering}p{#1}}
+\newcolumntype{R}[1]{>{\PreserveBackslash\raggedleft}p{#1}}
+\newcolumntype{L}[1]{>{\PreserveBackslash\raggedright}p{#1}}
+
+% this is needed for forms and links within the text
+\usepackage{hyperref}
+
+% reset counter after each section
+\usepackage{chngcntr}
+\counterwithin*{equation}{section}
+
+% package for algorithm
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\floatname{algorithm}{Thuật toán}
+
+\renewcommand{\lstlistingname}{Program}
+%New colors defined below
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.95,0.95,0.92}
+\lstdefinestyle{codingstyle}{
+  backgroundcolor=\color{backcolour},
+  commentstyle=\color{codegreen},
+  keywordstyle=\color{magenta},
+  numberstyle=\tiny\color{codegray},
+  stringstyle=\color{codepurple},
+  basicstyle=\ttfamily\normalsize,
+  breakatwhitespace=false,         
+  breaklines=true,                 
+  captionpos=b,                    
+  keepspaces=true,                 
+  numbers=left,                    
+  numbersep=5pt,                  
+  showspaces=false,                
+  showstringspaces=false,
+  showtabs=false,                  
+  tabsize=2,
+  language=SQL
+}
+\lstset{style=codingstyle}
+
+% set length index
+\setlength{\parindent}{35pt}
+
+% Đổi màu cho subsubsection thành màu đen
+\titleformat{\subsubsection}{\color{black}\normalfont\normalsize\bfseries}{\thesubsubsection}{1em}{}
+
+% Đổi màu tiêu đề của mục lục thành màu đen
+\renewcommand{\cfttoctitlefont}{\color{black}\Huge\bfseries}
+
+
+
+%---------------------------- Đây
+\tikzstyle{startstop} = [rectangle, rounded corners, minimum width=3cm, minimum height=1cm,text centered, draw=black, fill=red!30]
+\tikzstyle{process} = [rectangle, minimum width=3cm, minimum height=1cm, text centered, draw=black, fill=blue!20]
+\tikzstyle{arrow} = [thick,->,>=stealth]
+
+% Requires package: color.
+\definecolor{lightgray}{rgb}{.9,.9,.9}
+\definecolor{darkgray}{rgb}{.4,.4,.4}
+\definecolor{purple}{rgb}{0.65, 0.12, 0.82}
+
+\lstdefinelanguage{JavaScript}{
+  keywords={typeof, new, true, false, catch, function, return, null, catch, switch, var, if, in, while, do, else, case, break, interface, async, await},
+  keywordstyle=\color{blue}\bfseries,
+  ndkeywords={class, export, boolean, throw, implements, import, this},
+  ndkeywordstyle=\color{darkgray}\bfseries,
+  identifierstyle=\color{black},
+  sensitive=false,
+  comment=[l]{//},
+  morecomment=[s]{/*}{*/},
+  commentstyle=\color{purple}\ttfamily,
+  stringstyle=\color{red}\ttfamily,
+  morestring=[b]',
+  morestring=[b]"
+}
+
+\lstset{
+   language=JavaScript,
+   backgroundcolor=\color{lightgray},
+   extendedchars=true,
+   inputencoding=utf8,
+   basicstyle=\footnotesize\ttfamily,
+   showstringspaces=false,
+   showspaces=false,
+   numbers=none,
+   numberstyle=\footnotesize,
+   numbersep=9pt,
+   tabsize=2,
+   breaklines=true,
+   showtabs=false,
+   captionpos=b
+}
+% --------------------------------- HÊT
+
+
+
+
+% SUBIMAGE TEMPLATE
+% \begin{figure}[H]
+%     \begin{subfigure}{.5\textwidth}
+%       \centering
+%       \includegraphics[width=.9\linewidth]{IMG LINK}
+%       \caption{}
+%       \label{fig:}
+%     \end{subfigure}%
+%     \begin{subfigure}{.5\textwidth}
+%       \centering
+%       \includegraphics[width=.9\linewidth]{IMG LINK}
+%       \caption{}
+%       \label{fig:}
+%     \end{subfigure}
+%     \vspace{-10pt}
+%     \caption{}
+%     \label{fig:fig}
+% \end{figure}
+
+
+
+% \subsection{Content}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% \subsubsection*{Question}
+% \addcontentsline{toc}{subsubsection}{Question}
+% \textbf{Question:}\par
+% \textbf{Answer:}\par
+
+
+
+% \begin{figure}[H]
+%     \centering
+%     \includegraphics[width=\textwidth]{Image/fordfulkerson/fordfulkerson5.png}
+%     \caption{Minh họa giải thuật Ford-Fulkerson (Hình 5)}
+%     \label{fig:fordfulkerson5}
+% \end{figure}

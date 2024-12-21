@@ -1,0 +1,274 @@
+\subsection{Concurrency control}
+\subsubsection{Lý thuyết}
+\indent Kiểm soát đồng thời là một khái niệm cốt lõi trong hệ quản trị cơ sở dữ liệu (DBMS), nhằm đảm bảo rằng nhiều quy trình hoặc người dùng có thể thao tác dữ liệu cùng lúc mà không gây ra sự không nhất quán. Chức năng này quản lý cách các giao dịch được thực thi xen kẽ với nhau.\\
+
+Để đảm bảo tính nhất quán của dữ liệu, hệ quản trị cơ sở dữ liệu sử dụng nhiều phương pháp điều khiển đồng thời khác nhau. Một số phương pháp phổ biến bao gồm:
+\begin{itemize}
+    \item Khóa (Locking): Sử dụng các loại khóa như khóa đọc (read lock) hoặc khóa ghi (write lock) để hạn chế quyền truy cập vào dữ liệu, ngăn chặn các giao dịch khác can thiệp khi một giao dịch đang thao tác.
+    \item Đóng dấu thời gian (Timestamping): Các giao dịch được gắn nhãn thời gian và quyền truy cập dữ liệu được kiểm soát dựa trên thứ tự thời gian này.
+    \item Kiểm soát lạc quan (Optimistic Control): Giả định rằng xung đột sẽ hiếm xảy ra và chỉ kiểm tra tính nhất quán khi giao dịch chuẩn bị hoàn tất.
+    \item Hủy và khôi phục (Rollback and Recovery): Nếu phát hiện lỗi hoặc xung đột, giao dịch sẽ bị hủy bỏ và hệ thống khôi phục về trạng thái trước đó.
+    \item Lập lịch giao dịch (Transaction Scheduling): Điều phối thứ tự thực hiện các giao dịch để tránh các tình huống xung đột.
+\end{itemize}
+\subsubsection{Concurrency control trong PostgreSQL}
+\indent
+PostgreSQL sử dụng mô hình đa phiên bản (MVCC) để quản lý quyền truy cập đồng thời vào dữ liệu, đảm bảo tính nhất quán và cách ly giao dịch. MVCC cho phép mỗi câu lệnh SQL truy cập một phiên bản dữ liệu (snapshot) tại thời điểm nhất định, bất kể trạng thái hiện tại của dữ liệu. Nhờ vậy, các giao dịch đồng thời không gây ra xung đột hoặc dữ liệu không nhất quán, đồng thời giảm thiểu tranh chấp khóa và nâng cao hiệu suất trong môi trường đa người dùng.\\
+
+Ưu điểm lớn nhất của mô hình MVCC so với phương pháp khóa là khả năng tách biệt giữa đọc và ghi, giúp việc đọc không cản trở ghi và ngược lại. PostgreSQL duy trì tính năng này ngay cả ở mức cách ly giao dịch cao nhất nhờ cơ chế Serializable Snapshot Isolation (SSI) tiên tiến.\\
+
+PostgreSQL hỗ trợ khóa cấp bảng và dòng cho các ứng dụng không cần cách ly giao dịch cao nhưng muốn quản lý xung đột cụ thể. Tuy nhiên, MVCC thường mang lại hiệu suất tốt hơn. Ngoài ra, cơ chế khóa tư vấn cho phép ứng dụng sử dụng các khóa độc lập với giao dịch.\\
+
+Chuẩn SQL định nghĩa bốn mức cách ly giao dịch, với Serializable là mức cao nhất, đảm bảo kết quả tương đương khi thực hiện tuần tự. Ba mức còn lại ngăn các hiện tượng không nhất quán khác nhau trong các giao dịch đồng thời.
+\begin{itemize}
+    \item Đọc bẩn (dirty read): Giao dịch đọc dữ liệu từ giao dịch khác chưa cam kết ghi.
+    \item Đọc không lặp lại (nonrepeatable read): Giao dịch đọc lại dữ liệu đã đọc trước đó và phát hiện dữ liệu đã thay đổi bởi giao dịch khác đã cam kết.
+    \item Đọc bóng ma (phantom read): Giao dịch thực thi lại truy vấn và phát hiện tập hợp các hàng thỏa mãn điều kiện đã thay đổi do giao dịch vừa cam kết.
+    \item Bất thường trong tuần tự hóa (serialization anomaly): Kết quả cam kết thành công của nhóm giao dịch không nhất quán với bất kỳ thứ tự thực hiện tuần tự nào của các giao dịch đó.
+\end{itemize}
+\begin{enumerate}
+    \item Read Uncommitted Isolation Level
+    
+    \hspace{1cm}Cấp độ cô lập Read Uncommitted là một trong bốn cấp độ cô lập được chuẩn SQL định nghĩa, nhưng PostgreSQL không hỗ trợ trực tiếp. Thay vào đó, PostgreSQL đảm bảo rằng mọi truy vấn, kể cả ở cấp độ thấp nhất, chỉ có thể truy cập dữ liệu đã được cam kết.
+
+    \hspace{1cm}Đặc điểm chính của Read Uncommitted:
+    \begin{itemize}
+        \item Đọc dữ liệu chưa cam kết: Cho phép các giao dịch đọc dữ liệu tạm thời từ những giao dịch chưa cam kết, dẫn đến nguy cơ "dirty read".
+        \item Hiệu năng cao nhưng không đảm bảo tính nhất quán: Thích hợp trong trường hợp ưu tiên hiệu suất, nhưng không đảm bảo dữ liệu chính xác hoặc toàn vẹn.
+        \item Không khả dụng trong PostgreSQL: PostgreSQL không cung cấp cấp độ này vì chính sách đảm bảo tính toàn vẹn dữ liệu.
+    \end{itemize}
+
+    \hspace{1cm}Nếu cần mô phỏng Read Uncommitted trong PostgreSQL, bạn có thể sử dụng các cài đặt đặc biệt như vô hiệu hóa kiểm tra MVCC hoặc áp dụng các phương pháp khác. Tuy nhiên, điều này không được khuyến khích vì có thể ảnh hưởng đến tính toàn vẹn dữ liệu.
+    \item Read Committed Isolation Level
+
+    \hspace{1cm}Mức độ cách ly Read Committed là chế độ mặc định trong PostgreSQL, trong đó:
+    \begin{itemize}
+        \item Truy vấn SELECT: Chỉ nhìn thấy dữ liệu đã được cam kết tại thời điểm truy vấn bắt đầu. Nó không hiển thị thay đổi chưa cam kết hoặc thay đổi từ các giao dịch đồng thời trong quá trình truy vấn. Tuy nhiên, truy vấn vẫn thấy các thay đổi chưa cam kết trong phạm vi giao dịch của chính nó.
+        \item Cơ chế của UPDATE, DELETE, SELECT FOR UPDATE, SELECT FOR SHARE: Chỉ thao tác trên các hàng đã cam kết tại thời điểm lệnh bắt đầu. Nếu các hàng này bị khóa hoặc thay đổi bởi giao dịch đồng thời, lệnh sẽ đợi giao dịch kia hoàn tất và sau đó kiểm tra lại điều kiện tìm kiếm (WHERE) trước khi thực hiện.
+        \item Lệnh INSERT với ON CONFLICT:
+        \begin{itemize}
+            \item Với ON CONFLICT DO UPDATE, lệnh có thể cập nhật các hàng đang được giao dịch khác thay đổi, mặc dù các thay đổi đó không hiển thị ngay.
+            \item Với ON CONFLICT DO NOTHING, nếu giao dịch khác thay đổi dữ liệu gây xung đột, lệnh sẽ bỏ qua mà không thực thi.
+        \end{itemize}
+        \item Lệnh MERGE: Kết hợp INSERT, UPDATE, DELETE, đánh giá lại điều kiện trên các phiên bản cập nhật của hàng. Tuy nhiên, nếu xung đột xảy ra (như vi phạm duy nhất), lệnh không tự khởi động lại mà có thể gây lỗi, dẫn đến nguy cơ mất tính nhất quán.
+    \end{itemize}
+
+    \hspace{1cm}Mặc dù Read Committed mang lại hiệu suất cao và phù hợp với các thao tác đơn giản, nhưng nó không đủ mạnh cho các ứng dụng yêu cầu tính nhất quán cao. Ví dụ, khi hai giao dịch đồng thời cập nhật cùng một hàng, các thao tác có thể thấy dữ liệu khác nhau, gây ra kết quả không đồng nhất. Trong các trường hợp phức tạp hơn, việc sử dụng các mức độ cách ly cao hơn như Repeatable Read hoặc Serializable là cần thiết để đảm bảo tính chính xác và toàn vẹn dữ liệu.
+    \item Repeatable Read Isolation Level
+
+    \hspace{1cm}Mức độ cách ly Repeatable Read trong PostgreSQL đảm bảo mỗi giao dịch chỉ nhìn thấy dữ liệu đã được cam kết trước khi giao dịch bắt đầu. Trong quá trình thực thi, giao dịch không nhìn thấy dữ liệu chưa cam kết hoặc các thay đổi từ các giao dịch đồng thời. Tuy nhiên, các thay đổi do chính giao dịch thực hiện vẫn có thể được nhìn thấy, ngay cả khi chưa cam kết.
+
+    \hspace{1cm}So với Read Committed, nơi mỗi truy vấn thấy dữ liệu cam kết tại thời điểm truy vấn bắt đầu, Repeatable Read sử dụng một snapshot cố định của cơ sở dữ liệu tại thời điểm giao dịch khởi đầu. Điều này đảm bảo các truy vấn SELECT trong cùng một giao dịch luôn thấy cùng một dữ liệu, bất kể thay đổi từ các giao dịch đồng thời.
+
+    \hspace{1cm}Một số đặc điểm quan trọng của Repeatable Read:
+    \begin{itemize}
+        \item Các lệnh như UPDATE, DELETE, MERGE, SELECT FOR UPDATE và SELECT FOR SHARE chỉ tác động đến dữ liệu đã được cam kết tại thời điểm giao dịch bắt đầu.
+        \item Nếu một hàng bị thay đổi hoặc khóa bởi giao dịch khác, giao dịch hiện tại phải chờ giao dịch đó hoàn thành. Nếu giao dịch kia cam kết thay đổi, giao dịch hiện tại sẽ bị hủy và báo lỗi "could not serialize access due to concurrent update".
+    \end{itemize}
+
+    \hspace{1cm} Repeatable Read bảo vệ tính ổn định của dữ liệu trong giao dịch, ngăn chặn hiện tượng dirty reads và non-repeatable reads. Dù vậy, nó không đảm bảo tuyệt đối tính tuần tự giữa các giao dịch. Ứng dụng cần xử lý lỗi tuần tự hóa và có cơ chế thử lại giao dịch khi cần thiết.
+    \item Serializable Isolation Level
+
+    \hspace{1cm}Mức độ cách ly Serializable là mức cao nhất và nghiêm ngặt nhất trong PostgreSQL, đảm bảo rằng các giao dịch được thực thi như thể chúng diễn ra tuần tự, từng giao dịch một. Điều này giúp duy trì tính toàn vẹn và nhất quán của dữ liệu, bất kể số lượng giao dịch đồng thời. Tuy nhiên, nếu không thể xác định được một thứ tự thực thi tuần tự hợp lệ, các giao dịch sẽ bị hủy, và ứng dụng cần chuẩn bị để thử lại khi gặp lỗi tuần tự hóa.
+
+    \hspace{1cm}Serializable không chỉ ngăn chặn các hiện tượng như dirty reads, non-repeatable reads, và phantom reads mà còn phát hiện và ngăn các tình huống khiến giao dịch không thể tuân theo một thứ tự tuần tự. Hệ thống sẽ tự động hủy bỏ giao dịch nếu phát hiện xung đột không thể giải quyết. Điều này đảm bảo rằng mọi giao dịch đồng thời đều tương thích với một thứ tự tuần tự hợp lệ.
+
+    \hspace{1cm}Để đạt được điều này, PostgreSQL sử dụng kỹ thuật Predicate Locking. Hệ thống theo dõi các phụ thuộc giữa các giao dịch đồng thời thông qua các khóa theo điều kiện. Mặc dù không gây ra deadlock, kỹ thuật này có thể làm tăng chi phí tài nguyên và ảnh hưởng đến hiệu suất, đặc biệt trong môi trường có nhiều giao dịch đồng thời.
+
+    \hspace{1cm}Serializable đảm bảo tính nhất quán tuyệt đối, nhưng các giao dịch đồng thời vẫn có thể gặp lỗi tuần tự hóa. Một ví dụ phổ biến là vi phạm ràng buộc duy nhất, ngay cả khi dữ liệu đã được kiểm tra trước khi chèn. Điều này xảy ra khi nhiều giao dịch đồng thời tranh giành tài nguyên. Để giảm thiểu xung đột, ứng dụng cần thực hiện các kiểm tra kỹ lưỡng và sẵn sàng thử lại giao dịch khi gặp lỗi.
+
+    \hspace{1cm}Để sử dụng Serializable hiệu quả:
+    \begin{itemize}
+        \item Giảm thiểu xung đột: Hạn chế số lượng kết nối đồng thời và giảm độ phức tạp của giao dịch. Tránh sử dụng các khóa như SELECT FOR UPDATE hoặc SELECT FOR SHARE khi không cần thiết.
+        \item Cấu hình hệ thống: Tinh chỉnh các tham số như max\_pred\_locks\_per\_transaction, max\_pred\_locks\_per\_relation, và max\_pred\_locks\_per\_page để giảm khả năng xảy ra lỗi tuần tự hóa.
+        \item Chuẩn bị xử lý lỗi: Ứng dụng nên tự động xử lý và thử lại giao dịch nếu bị hủy do lỗi tuần tự hóa.
+    \end{itemize}
+
+    \hspace{1cm}Serializable là mức cách ly mạnh mẽ và lý tưởng cho các ứng dụng yêu cầu tính nhất quán và chính xác cao. Tuy nhiên, để sử dụng hiệu quả, cần quản lý chặt chẽ tài nguyên, tối ưu hiệu suất hệ thống, và chuẩn bị chiến lược xử lý lỗi tuần tự hóa.
+\end{enumerate}
+
+PostgreSQL cung cấp nhiều chế độ khóa giúp kiểm soát truy cập đồng thời vào dữ liệu trong các bảng. Các chế độ này được sử dụng khi cơ chế MVCC không đáp ứng đủ yêu cầu. Hầu hết các lệnh PostgreSQL tự động áp dụng khóa phù hợp để ngăn ngừa việc xóa hoặc sửa đổi bảng một cách không tương thích. Ví dụ, lệnh TRUNCATE yêu cầu khóa ACCESS EXCLUSIVE trên bảng để thực hiện thao tác, ngăn không cho các hoạt động khác xảy ra đồng thời.
+\begin{enumerate}
+    \item Khóa cấp độ bảng
+
+    \hspace{1cm}PostgreSQL sử dụng các chế độ khóa cấp bảng để đảm bảo tính nhất quán của dữ liệu trong giao dịch. Các khóa này có thể áp dụng tự động hoặc qua lệnh LOCK. Mặc dù tên gọi có thể gây nhầm lẫn, tất cả đều là khóa cấp bảng. Sự khác biệt chính giữa các chế độ khóa là mức độ xung đột giữa chúng. Một giao dịch không thể giữ nhiều khóa xung đột trên cùng một bảng cùng lúc, nhưng có thể giữ các khóa xung đột đối với chính nó.
+
+    \hspace{1cm}Các chế độ khóa trong PostgreSQL có thể được phân loại như sau:
+    \begin{itemize}
+        \item ACCESS SHARE: Khóa cơ bản, chỉ xung đột với ACCESS EXCLUSIVE. Dùng cho các lệnh SELECT không thay đổi dữ liệu.
+        \item ROW SHARE: Xung đột với EXCLUSIVE và ACCESS EXCLUSIVE. Dùng cho SELECT với các tùy chọn như FOR UPDATE hoặc FOR SHARE, khi cần khóa bảng để cập nhật dữ liệu.
+        \item ROW EXCLUSIVE: Xung đột với SHARE, SHARE ROW EXCLUSIVE, EXCLUSIVE, và ACCESS EXCLUSIVE. Dùng cho các lệnh UPDATE, DELETE, INSERT, và MERGE.
+        \item SHARE UPDATE EXCLUSIVE: Xung đột với SHARE, ROW EXCLUSIVE, EXCLUSIVE, và ACCESS EXCLUSIVE. Dùng cho VACUUM, ANALYZE, CREATE INDEX CONCURRENTLY và một số lệnh ALTER INDEX.
+        \item SHARE: Xung đột với ROW EXCLUSIVE, SHARE UPDATE EXCLUSIVE, và EXCLUSIVE. Dùng cho CREATE INDEX để ngăn thay đổi dữ liệu trong khi thực hiện thao tác đọc.
+        \item SHARE ROW EXCLUSIVE: Xung đột với ROW EXCLUSIVE, SHARE, EXCLUSIVE, và ACCESS EXCLUSIVE. Chỉ cho phép một giao dịch giữ khóa này tại một thời điểm, dùng khi tạo TRIGGER hoặc thực hiện ALTER TABLE.
+        \item EXCLUSIVE: Xung đột với hầu hết các khóa khác, chỉ cho phép giữ khóa ACCESS SHARE đồng thời. Dùng cho REFRESH MATERIALIZED VIEW CONCURRENTLY.
+        \item ACCESS EXCLUSIVE: Khóa mạnh nhất, xung đột với tất cả các khóa khác. Dùng cho các lệnh như DROP TABLE, TRUNCATE, REINDEX, CLUSTER, và VACUUM FULL.
+    \end{itemize}
+
+    \hspace{1cm}Các khóa này sẽ được giữ cho đến khi giao dịch kết thúc. Nếu khóa được lấy sau khi thiết lập điểm lưu (savepoint), nó sẽ bị giải phóng nếu giao dịch bị rollback về điểm lưu đó, đảm bảo tính nhất quán của hệ thống.
+    \item Khóa cấp hàng
+
+    \hspace{1cm}PostgreSQL hỗ trợ các chế độ khóa cấp hàng để đảm bảo tính toàn vẹn dữ liệu trong giao dịch, không ảnh hưởng đến việc truy vấn nhưng ngăn chặn các thay đổi đối với các hàng đang bị khóa cho đến khi giao dịch hoàn tất. Các chế độ khóa cấp hàng bao gồm:
+    \begin{itemize}
+        \item FOR UPDATE: Khóa các hàng trong lệnh SELECT như thể chúng sẽ được cập nhật, ngăn các giao dịch khác thực hiện các thao tác như UPDATE, DELETE, SELECT FOR UPDATE, SELECT FOR NO KEY UPDATE, SELECT FOR SHARE, hoặc SELECT FOR KEY SHARE cho đến khi giao dịch hiện tại hoàn tất. Trong các giao dịch với mức độ cô lập REPEATABLE READ hoặc SERIALIZABLE, nếu hàng bị thay đổi từ khi giao dịch bắt đầu, một lỗi sẽ xảy ra.
+        \item FOR NO KEY UPDATE: Tương tự như FOR UPDATE nhưng khóa yếu hơn, không ngăn chặn các lệnh SELECT FOR KEY SHARE trên cùng một hàng. Dùng khi không cần khóa toàn bộ hàng một cách nghiêm ngặt như FOR UPDATE.
+        \item FOR SHARE: Khóa chia sẻ, ngăn các giao dịch khác thực hiện UPDATE, DELETE, SELECT FOR UPDATE, hoặc SELECT FOR NO KEY UPDATE, nhưng cho phép SELECT FOR SHARE hoặc SELECT FOR KEY SHARE.
+        \item FOR KEY SHARE: Khóa yếu hơn FOR SHARE, chỉ ngăn các thao tác DELETE hoặc UPDATE thay đổi giá trị khóa, không ảnh hưởng đến các cột khác hoặc các lệnh SELECT FOR NO KEY UPDATE, SELECT FOR SHARE, SELECT FOR KEY SHARE.
+    \end{itemize}
+
+    \hspace{1cm}PostgreSQL không lưu trữ thông tin về các hàng đã sửa đổi trong bộ nhớ, do đó không giới hạn số lượng hàng có thể bị khóa. Tuy nhiên, khóa một hàng có thể dẫn đến ghi đĩa, ví dụ khi SELECT FOR UPDATE sửa đổi các hàng để đánh dấu chúng là bị khóa. Các khóa cấp hàng sẽ được giải phóng khi giao dịch kết thúc hoặc trong quá trình phục hồi điểm lưu.
+    \item Khóa cấp trang
+
+    \hspace{1cm}Ngoài các khóa cấp bảng và khóa cấp hàng, PostgreSQL còn sử dụng khóa chia sẻ và khóa độc quyền cấp trang để quản lý quyền truy cập đọc/ghi vào các trang bảng trong bộ đệm dùng chung. Những khóa này sẽ được giải phóng ngay sau khi một hàng được truy xuất hoặc cập nhật. Mặc dù các nhà phát triển ứng dụng thường không cần phải tương tác trực tiếp với các khóa cấp trang, nhưng chúng được nhắc đến ở đây để đảm bảo tính đầy đủ của hệ thống quản lý khóa trong PostgreSQL.
+    \item Bế tắc
+
+    \hspace{1cm}Việc sử dụng khóa rõ ràng có thể dẫn đến tình trạng bế tắc khi hai hoặc nhiều giao dịch giữ các khóa mà giao dịch kia cần. Ví dụ, nếu giao dịch 1 giữ khóa độc quyền trên bảng A và muốn khóa bảng B, trong khi giao dịch 2 giữ khóa độc quyền trên bảng B và muốn khóa bảng A, cả hai giao dịch sẽ bị chặn. PostgreSQL sẽ tự động phát hiện và giải quyết tình trạng bế tắc bằng cách hủy một giao dịch, cho phép giao dịch còn lại tiếp tục. Tuy nhiên, không thể dự đoán giao dịch nào bị hủy, vì vậy không nên dựa vào điều này.
+
+    \hspace{1cm}Tình trạng bế tắc không chỉ xảy ra với khóa rõ ràng mà còn có thể phát sinh từ khóa cấp hàng. Khi hai giao dịch đồng thời sửa đổi cùng một bảng, nếu một giao dịch giữ khóa cấp hàng trên một hàng và giao dịch kia cố gắng cập nhật hàng đó, tình trạng bế tắc có thể xảy ra. PostgreSQL sẽ phát hiện và giải quyết bằng cách hủy một giao dịch.
+
+    \hspace{1cm}Để phòng tránh bế tắc, một biện pháp hiệu quả là đảm bảo các ứng dụng sử dụng cơ sở dữ liệu lấy khóa theo thứ tự nhất quán. Nếu cả hai giao dịch đều khóa các hàng theo cùng một thứ tự, bế tắc sẽ không xảy ra. Ngoài ra, các giao dịch nên giữ khóa với mức độ hạn chế nhất có thể để giảm thiểu khả năng xung đột. Nếu không thể tránh được, tình trạng bế tắc có thể được xử lý thông qua cơ chế thử lại các giao dịch bị hủy.
+
+    \hspace{1cm}Để tránh bế tắc, các ứng dụng nên đảm bảo việc lấy khóa theo thứ tự nhất quán. Nếu các giao dịch khóa hàng theo cùng thứ tự, bế tắc sẽ không xảy ra. Các giao dịch cũng nên giữ khóa trong phạm vi tối thiểu để giảm xung đột. Nếu bế tắc không thể tránh, có thể xử lý qua cơ chế thử lại các giao dịch bị hủy. Nếu không phát hiện được bế tắc, giao dịch có thể chờ vô hạn để lấy khóa. Vì vậy, ứng dụng nên tránh giữ giao dịch mở quá lâu, đặc biệt khi chờ người dùng nhập dữ liệu.
+    \item Khóa tư vấn
+
+    \hspace{1cm}PostgreSQL cung cấp cơ chế khóa tư vấn, cho phép ứng dụng tạo ra các khóa theo nhu cầu và không bị hệ thống buộc phải sử dụng. Những khóa này mang tính tùy chọn và có thể hữu ích cho các chiến lược khóa không phù hợp với mô hình MVCC (Multi-Version Concurrency Control). Một ví dụ điển hình là việc sử dụng khóa tư vấn để mô phỏng các chiến lược khóa bi quan, thường thấy trong các hệ thống quản lý dữ liệu dạng "flat file". Khóa tư vấn giúp tránh làm đầy bảng dữ liệu, nhanh chóng và tự động được dọn dẹp vào cuối phiên.
+
+    \hspace{1cm}Trong PostgreSQL, khóa tư vấn có thể được lấy ở hai mức độ: cấp độ phiên và cấp độ giao dịch. Khóa cấp độ phiên sẽ được giữ cho đến khi được giải phóng hoặc phiên kết thúc, không phụ thuộc vào trạng thái giao dịch. Các khóa cấp độ giao dịch, tương tự như khóa thông thường, sẽ tự động được giải phóng khi giao dịch kết thúc. Hành vi của khóa cấp độ phiên thường thuận tiện hơn trong các trường hợp sử dụng ngắn hạn, vì chúng không yêu cầu thao tác mở khóa rõ ràng.
+
+    \hspace{1cm}Khóa tư vấn có thể được theo dõi thông qua chế độ xem hệ thống pg\_locks, giống như các khóa thông thường. Tuy nhiên, vì cả khóa tư vấn và khóa thông thường đều được lưu trong bộ nhớ chia sẻ, nên cần chú ý đến việc không làm cạn kiệt bộ nhớ này, để tránh việc máy chủ không thể cấp thêm khóa. Giới hạn này được xác định bởi các tham số cấu hình max\_locks\_per\_transaction và max\_connections, và có thể dẫn đến số lượng khóa tư vấn bị giới hạn từ hàng chục đến hàng trăm nghìn, tùy vào cấu hình máy chủ.
+
+    \hspace{1cm}Khi sử dụng khóa tư vấn, đặc biệt trong các truy vấn có liên quan đến thứ tự hoặc mệnh đề LIMIT, cần cẩn thận với thứ tự đánh giá các biểu thức SQL. Một số trường hợp có thể dẫn đến việc khóa không được giải phóng như mong đợi nếu LIMIT không được áp dụng trước khi khóa được lấy, dẫn đến tình trạng khóa treo lơ lửng mà không được giải phóng cho đến khi kết thúc phiên.
+\end{enumerate}
+
+
+Trong khi giao dịch sử dụng chế độ xem dữ liệu ổn định như cơ chế Đọc lặp lại, có một vấn đề tinh tế liên quan đến việc sử dụng ảnh chụp nhanh MVCC để kiểm tra tính nhất quán của dữ liệu: xung đột đọc/ghi. Cụ thể, nếu một giao dịch ghi dữ liệu và một giao dịch khác đồng thời cố gắng đọc cùng dữ liệu, giao dịch đọc sẽ không thể thấy những thay đổi của giao dịch ghi. Điều này có thể khiến giao dịch đọc “nhìn thấy” dữ liệu như thể nó đã được ghi trước khi giao dịch ghi bắt đầu hoặc cam kết. Dù vậy, vấn đề thực sự phát sinh khi giao dịch đọc đồng thời ghi lại dữ liệu mà nó đã đọc, tạo ra tình huống một giao dịch có thể dường như thực thi trước các giao dịch khác mặc dù cam kết sau. Khi điều này xảy ra, một chu kỳ có thể xuất hiện trong biểu đồ thực thi giao dịch, làm cho các kiểm tra tính toàn vẹn không thể hoạt động chính xác nếu thiếu sự hỗ trợ đặc biệt.
+\begin{enumerate}
+    \item Thực thi tính nhất quán với các giao dịch có thể tuần tự hóa
+
+    \hspace{1cm}Khi mức cô lập giao dịch Serializable được áp dụng cho tất cả các thao tác ghi và các lần đọc cần chế độ xem dữ liệu nhất quán, không cần phải thực hiện thêm bất kỳ biện pháp nào để đảm bảo tính nhất quán. Phần mềm từ các môi trường khác được thiết kế để sử dụng giao dịch serializable nhằm duy trì tính nhất quán sẽ "hoạt động" theo cách này trong PostgreSQL.
+    
+    \hspace{1cm}Việc sử dụng kỹ thuật này giúp giảm bớt gánh nặng cho các lập trình viên ứng dụng, bởi nếu phần mềm ứng dụng sử dụng một khuôn khổ tự động thử lại các giao dịch bị lỗi tuần tự hóa, các vấn đề này sẽ được khắc phục mà không cần sự can thiệp thủ công. Việc đặt default\_transaction\_isolation thành serializable có thể là một giải pháp hợp lý. Đồng thời, cần đảm bảo rằng không có mức cô lập giao dịch nào khác được sử dụng, vô tình hoặc cố ý, nhằm phá hoại các kiểm tra tính toàn vẹn, thông qua việc kiểm tra mức cô lập giao dịch trong các kích hoạt.
+    \item Thực thi tính nhất quán với Khóa chặn rõ ràng
+
+    \hspace{1cm}Khi thực hiện các lệnh ghi không tuần tự hóa, để đảm bảo tính hợp lệ và bảo vệ hàng khỏi các bản cập nhật đồng thời, cần sử dụng các câu lệnh như SELECT FOR UPDATE, SELECT FOR SHARE, hoặc LOCK TABLE. Trong đó, SELECT FOR UPDATE và SELECT FOR SHARE chỉ khóa các hàng được trả về, ngăn chặn cập nhật đồng thời, còn LOCK TABLE khóa toàn bộ bảng. Đây là điều cần lưu ý khi chuyển ứng dụng từ môi trường khác sang PostgreSQL.
+
+    \hspace{1cm}Một lưu ý quan trọng là SELECT FOR UPDATE không ngăn giao dịch đồng thời cập nhật hoặc xóa hàng đã chọn trừ khi thực hiện thao tác UPDATE. Câu lệnh này chỉ tạm thời chặn các giao dịch khác khỏi thao tác trên hàng bị khóa, nhưng khi giao dịch giữ khóa xác nhận, giao dịch bị chặn vẫn có thể tiếp tục với xung đột trừ khi có thao tác UPDATE thực sự.
+    
+    \hspace{1cm}Kiểm tra tính hợp lệ toàn cục trong môi trường MVCC không tuần tự hóa đòi hỏi cẩn thận. Ví dụ, khi kiểm tra tổng các khoản tín dụng và ghi nợ trong các bảng đang cập nhật đồng thời, so sánh hai câu lệnh SELECT sum(...) sẽ không chính xác trong chế độ Đọc đã cam kết. Cả hai phép tính nên được thực hiện trong một giao dịch đọc lặp lại để đảm bảo tính chính xác về các giao dịch đã cam kết trước khi giao dịch đọc bắt đầu.
+    
+    \hspace{1cm}Trong trường hợp này, khóa tất cả các bảng cần thiết để kiểm tra sẽ đảm bảo tính chính xác. Việc sử dụng chế độ khóa SHARE (hoặc cao hơn) đảm bảo không có thay đổi chưa cam kết nào trong bảng bị khóa, ngoại trừ thay đổi của giao dịch hiện tại.
+    
+    \hspace{1cm}Nếu dựa vào khóa để ngăn ngừa thay đổi đồng thời, cần chắc chắn rằng khóa đã được lấy trước khi thực hiện truy vấn. Ảnh chụp nhanh trong giao dịch đọc lặp lại bị đóng băng khi truy vấn hoặc sửa đổi dữ liệu đầu tiên được thực hiện, vì vậy cần lấy khóa trước khi ảnh chụp nhanh bị ghi nhận.
+\end{enumerate}
+
+PostgreSQL cung cấp khả năng truy cập dữ liệu bảng mà không bị chặn đối với các thao tác đọc/ghi, tuy nhiên, không phải tất cả các phương thức truy cập chỉ mục đều hỗ trợ tính năng này. Cụ thể, các loại chỉ mục khác nhau được xử lý như sau:
+\begin{itemize}
+    \item Chỉ mục B-tree, GiST và SP-GiST: Các chỉ mục này sử dụng khóa chia sẻ và khóa độc quyền cấp trang trong thời gian ngắn cho các thao tác đọc/ghi, và được giải phóng ngay sau khi mỗi hàng chỉ mục được truy xuất hoặc chèn. Các phương pháp này đảm bảo khả năng đồng thời cao mà không xảy ra deadlock.
+    \item CChỉ mục Hash: Với chỉ mục hash, khóa chia sẻ và khóa độc quyền được áp dụng ở cấp bucket hash cho các thao tác đọc/ghi, và giải phóng sau khi toàn bộ bucket được xử lý. Mặc dù khóa cấp bucket cung cấp khả năng đồng thời tốt hơn so với khóa cấp chỉ mục, nhưng do thời gian giữ khóa lâu hơn, deadlock vẫn có thể xảy ra.
+    \item Chỉ mục GIN: Chỉ mục GIN sử dụng các khóa chia sẻ và khóa độc quyền cấp trang trong thời gian ngắn cho các thao tác đọc/ghi. Các khóa này được giải phóng ngay sau khi mỗi hàng chỉ mục được truy xuất hoặc chèn. Tuy nhiên, việc chèn một giá trị vào chỉ mục GIN thường dẫn đến nhiều lần chèn khóa chỉ mục cho mỗi giá trị, do đó, mỗi lần chèn có thể yêu cầu thực hiện nhiều thao tác hơn.
+\end{itemize}
+
+Tính đến hiện tại, chỉ mục B-tree là lựa chọn tối ưu cho các ứng dụng cần hỗ trợ đồng thời, nhờ vào khả năng cung cấp hiệu suất cao và tính linh hoạt vượt trội so với chỉ mục hash. Do đó, B-tree là loại chỉ mục được khuyến nghị cho các ứng dụng đồng thời yêu cầu lập chỉ mục dữ liệu vô hướng. Đối với dữ liệu không vô hướng, các loại chỉ mục như GiST, SP-GiST hoặc GIN nên được ưu tiên sử dụng.
+\subsubsection{Concurrency control trong MongoDB}
+\indent Kiểm soát đồng thời trong MongoDB đảm bảo các thao tác diễn ra đồng thời nhưng vẫn duy trì tính chính xác và nhất quán. Thay vì sử dụng phương pháp bi quan như các hệ thống khóa, MongoDB áp dụng phương pháp lạc quan với WiredTiger, nơi việc kiểm tra xung đột chỉ xảy ra khi cần thiết. Nếu phát hiện xung đột ghi, một thao tác sẽ bị hủy và thực hiện lại. Khi hai thao tác đồng thời, ít nhất một là ghi, gây xung đột với các ràng buộc, MongoDB sẽ tự động hủy bỏ và thử lại thao tác ghi xung đột.\\
+
+MongoDB sử dụng cơ chế khóa để đảm bảo tính chính xác của dữ liệu khi thực hiện các thao tác đồng thời. Hệ thống khóa của MongoDB bao gồm khóa đọc, khóa ghi và khóa ý định, giúp quản lý hiệu quả các truy cập đồng thời mà vẫn duy trì tính toàn vẹn dữ liệu.
+\begin{enumerate}
+    \item Khóa đọc: Khóa chia sẻ trên một tài nguyên như bộ sưu tập hoặc cơ sở dữ liệu, khi được giữ, cho phép người đọc đồng thời nhưng không cho phép người ghi. 
+    \item Khóa ghi: Khóa độc quyền được áp dụng trên một tài nguyên, chẳng hạn như bộ sưu tập hoặc cơ sở dữ liệu, khi một tiến trình thực hiện thao tác ghi. Loại khóa này đảm bảo rằng không có tiến trình nào khác có thể ghi hoặc đọc từ tài nguyên đó cho đến khi tiến trình hiện tại hoàn tất, nhằm duy trì tính toàn vẹn dữ liệu.
+    \item Khóa ý định: Khóa trên tài nguyên chỉ rõ rằng người sở hữu khóa sẽ thực hiện các thao tác đọc (với mục đích chia sẻ) hoặc ghi (với mục đích không chia sẻ) trên tài nguyên, đồng thời áp dụng cơ chế kiểm soát đồng thời chi tiết hơn so với khóa ý định. Trong khi đó, khóa ý định cho phép cả người đọc và người ghi có thể truy cập đồng thời vào tài nguyên đó.
+\end{enumerate}
+
+MongoDB, thông qua công cụ lưu trữ WiredTiger, áp dụng phương pháp kiểm soát đồng thời lạc quan. Thay vì ngăn chặn các thao tác từ trước, WiredTiger cho phép chúng thực hiện song song và chỉ kiểm tra xung đột sau khi các thao tác đã hoàn thành. Phương pháp này giúp tăng hiệu suất trong các môi trường có tần suất xung đột thấp.
+\begin{enumerate}
+    \item Hoạt động và hạn chế
+    \begin{itemize}
+        \item Không thể ghim tài liệu vào bộ nhớ đệm của WiredTiger.
+        \item WiredTiger không phân biệt bộ nhớ đệm cho thao tác đọc và ghi.
+        \item Khối lượng công việc ghi lớn có thể ảnh hưởng đến hiệu suất, nhưng WiredTiger ưu tiên lưu trữ đệm chỉ mục trong các trường hợp này.
+        \item Bộ nhớ đệm của WiredTiger được phân bổ cho toàn bộ phiên bản mongod, không phân bổ ở cấp độ cơ sở dữ liệu hoặc bộ sưu tập.
+    \end{itemize}
+    \item Giao dịch (Đọc và Ghi) Đồng thời
+    \begin{itemize}
+        \item Thuật toán điều chỉnh động: Từ phiên bản 7.0, MongoDB tự động điều chỉnh số lượng giao dịch đồng thời (vé đọc và ghi) để tối ưu hóa thông lượng khi quá tải cụm.
+        \item Giới hạn vé: Số lượng vé đọc và ghi tối đa là 128 và có thể khác nhau giữa các nút. Mỗi nút có số lượng vé đọc và ghi bằng nhau.
+        \item Cấu hình: Sử dụng storageEngineConcurrentReadTransactions và storageEngineConcurrentWriteTransactions để chỉ định số lượng tối đa.
+        \item Tắt thuật toán: Để tắt thuật toán, yêu cầu hỗ trợ từ Kỹ sư dịch vụ kỹ thuật MongoDB.
+        \item Xem số lượng giao dịch: Dùng lệnh serverStatus và queues.execution để kiểm tra số lượng giao dịch.
+        \item Quá tải cụm: Giá trị availablein thấp không chỉ ra quá tải; số lượng phiếu xếp hàng mới là dấu hiệu quá tải.
+    \end{itemize}
+    \item Tính đồng thời ở cấp độ tài liệu
+    \begin{itemize}
+        \item Kiểm soát đồng thời cấp tài liệu: WiredTiger sử dụng kiểm soát đồng thời cấp tài liệu cho các hoạt động ghi, cho phép nhiều máy khách sửa đổi tài liệu khác nhau cùng lúc trong một bộ sưu tập.
+        \item Kiểm soát đồng thời lạc quan: Hầu hết các hoạt động đọc và ghi sử dụng kiểm soát đồng thời lạc quan, với khóa ý định ở cấp độ toàn cục, cơ sở dữ liệu và bộ sưu tập.
+        \item Xung đột ghi: Khi có xung đột giữa hai hoạt động, một hoạt động sẽ gặp xung đột ghi và MongoDB sẽ thử lại tự động.
+        \item Khóa toàn phiên bản: Một số hoạt động toàn cục yêu cầu khóa "toàn phiên bản" toàn cục, thường là các hoạt động ngắn hạn liên quan đến nhiều cơ sở dữ liệu.
+        \item Khóa cơ sở dữ liệu độc quyền: Một số hoạt động như renameCollection yêu cầu khóa cơ sở dữ liệu độc quyền trong một số trường hợp nhất định.
+    \end{itemize}
+    \item Ảnh chụp nhanh và Điểm kiểm tra
+    \begin{itemize}
+        \item MVCC: WiredTiger sử dụng MultiVersion Concurrency Control (MVCC) để cung cấp ảnh chụp nhanh dữ liệu, đảm bảo chế độ xem nhất quán.
+        \item Điểm kiểm tra: Dữ liệu ảnh chụp nhanh được ghi vào đĩa và điểm kiểm tra giúp đảm bảo tính nhất quán và khôi phục khi có sự cố.
+        \item Tạo điểm kiểm tra: MongoDB cấu hình để tạo điểm kiểm tra mỗi 60 giây. Điểm kiểm tra cũ vẫn hợp lệ cho đến khi điểm mới được ghi và cập nhật.
+        \item Khôi phục: Nếu có lỗi khi ghi điểm kiểm tra, MongoDB có thể khôi phục từ điểm kiểm tra cuối cùng hợp lệ.
+        \item Giải phóng dữ liệu cũ: Khi điểm kiểm tra mới có thể truy cập, WiredTiger giải phóng các trang từ điểm kiểm tra cũ.
+        \item Lưu giữ lịch sử ảnh chụp: Dùng tham số minSnapshotHistoryWindowInSeconds để chỉ định thời gian lưu giữ ảnh chụp nhanh. Tăng giá trị làm tăng mức sử dụng đĩa.
+        \item Lưu trữ trong tệp: Lịch sử ảnh chụp nhanh được lưu trong tệp WiredTigerHS.wt tại dbPath.
+    \end{itemize}
+    \item Nhật ký
+    \begin{itemize}
+        \item Nhật ký ghi trước: WiredTiger sử dụng nhật ký ghi trước kết hợp với điểm kiểm tra để đảm bảo độ bền của dữ liệu.
+        \item Phát lại dữ liệu: Nếu MongoDB thoát giữa các điểm kiểm tra, nhật ký sẽ phát lại mọi sửa đổi kể từ điểm kiểm tra cuối cùng.
+        \item Tần suất ghi nhật ký: Thông tin về tần suất ghi nhật ký vào đĩa có thể được tham khảo trong Quy trình ghi nhật ký.
+        \item Nén nhật ký: Nhật ký WiredTiger được nén bằng thư viện snappy. Bạn có thể chỉ định thuật toán nén khác hoặc tắt nén bằng cách sử dụng storage.wiredTiger.engineConfig.journalCompressor.
+        \item Lưu ý về bản ghi nhỏ: Nếu bản ghi nhật ký nhỏ hơn hoặc bằng 128 byte, WiredTiger sẽ không nén bản ghi đó.
+    \end{itemize}
+    \item Nén
+    \begin{itemize}
+        \item Nén dữ liệu: MongoDB hỗ trợ nén cho tất cả bộ sưu tập và chỉ mục, giúp giảm sử dụng bộ nhớ nhưng tăng chi phí CPU.
+        \item Thuật toán nén mặc định: WiredTiger sử dụng nén khối với thư viện snappy cho bộ sưu tập và nén tiền tố cho chỉ mục.
+        \item Thuật toán nén thay thế: Các thư viện nén khối khác như zlib và zstd có sẵn. Để thay đổi thuật toán nén, sử dụng storage.wiredTiger.collectionConfig.blockCompressor.
+        \item Tắt nén tiền tố: Để tắt nén tiền tố cho chỉ mục, sử dụng storage.wiredTiger.indexConfig.prefixCompression.
+        \item Cấu hình nén: Nén có thể được cấu hình cho từng bộ sưu tập và chỉ mục khi tạo chúng.
+        \item Cài đặt mặc định: Cài đặt nén mặc định cung cấp sự cân bằng giữa hiệu quả lưu trữ và yêu cầu xử lý.
+        \item Nén nhật ký: Nhật ký WiredTiger cũng được nén theo mặc định.
+    \end{itemize}
+    \item Sử dụng bộ nhớ:
+    \begin{itemize}
+        \item Bộ đệm WiredTiger: MongoDB sử dụng bộ đệm nội bộ WiredTiger và bộ đệm hệ thống tập tin. Kích thước bộ đệm mặc định là 50\% của (RAM - 1 GB) hoặc 256 MB.
+        \item Ví dụ kích thước bộ đệm: Với 4GB RAM, bộ đệm WiredTiger sử dụng 1,5GB; với 1,25GB RAM, sử dụng 256MB.
+        \item Giới hạn bộ nhớ trong container: Khi chạy trong container, giới hạn bộ nhớ thấp hơn hệ thống được sử dụng.
+        \item Cấu hình nén: Nén khối Snappy và nén tiền tố cho chỉ mục có thể cấu hình ở cấp độ toàn cục hoặc từng bộ sưu tập/chỉ mục.
+        \item Biểu diễn dữ liệu: Dữ liệu trong bộ đệm hệ thống tệp giống như trên đĩa và có thể nén. Dữ liệu trong bộ đệm WiredTiger không nén.
+        \item Bộ đệm hệ thống tập tin: MongoDB sử dụng bộ nhớ trống còn lại mà bộ đệm WiredTiger không sử dụng.
+        \item Điều chỉnh kích thước bộ đệm: Kích thước bộ đệm có thể điều chỉnh qua storage.wiredTiger.engineConfig.cacheSizeGB và --wiredTigerCacheSizeGB. Tránh tăng vượt mức mặc định.
+    \end{itemize}
+\end{enumerate}
+\subsubsection{So sánh và kết luận}
+\begin{itemize}
+    \item Cơ chế chính: PostgreSQL sử dụng MVCC (Multi-Version Concurrency Control) để quản lý đồng thời, trong khi MongoDB sử dụng Document-Level Locking kết hợp Snapshot Isolation.
+    \item Cấp độ Lock: PostgreSQL hỗ trợ khóa ở cấp row và table, còn MongoDB chỉ khóa ở cấp document, giúp giảm phạm vi ảnh hưởng.
+    \item Cách xử lý giao dịch đồng thời: PostgreSQL tạo nhiều phiên bản (snapshot) của từng row để giảm xung đột giữa các giao dịch đọc và ghi, trong khi MongoDB khóa riêng từng tài liệu khi ghi, giúp hạn chế tranh chấp.
+    \item Tính nhất quán (Consistency): PostgreSQL đảm bảo Strong Consistency theo mô hình ACID, còn MongoDB cung cấp Eventual Consistency với hỗ trợ ACID từ phiên bản 4.0 nhưng không mạnh bằng PostgreSQL.
+    \item Mức cách ly giao dịch (Isolation Levels): PostgreSQL hỗ trợ đầy đủ các mức cách ly như Read Uncommitted, Read Committed, Repeatable Read, và Serializable, trong khi MongoDB chỉ hỗ trợ cách ly cơ bản, không đa dạng như PostgreSQL.
+    \item Xử lý Deadlock: PostgreSQL có cơ chế phát hiện và xử lý deadlock, trong khi MongoDB ít gặp deadlock hơn do khóa chỉ áp dụng ở cấp tài liệu.
+    \item Hiệu năng khi ghi đồng thời: PostgreSQL có thể chậm hơn trong các giao dịch ghi đồng thời cao do cần lưu và quản lý nhiều phiên bản của row, còn MongoDB có hiệu năng ghi đồng thời cao nhờ chỉ khóa ở tài liệu.
+    \item Tương thích với giao dịch phức tạp: PostgreSQL rất phù hợp với các giao dịch phức tạp, trong khi MongoDB chủ yếu phù hợp với các giao dịch đơn giản.
+\end{itemize}
+\begin{table}[H]
+    \centering
+    \begin{tabular}{|L{3.2cm}|L{5.05cm}|L{5.05cm}|} \hline 
+         \textbf{Tiêu chí so sánh }&  \textbf{PostgreSQL}&  \textbf{MongoDB}\\ \hline 
+         Cơ chế chính & MVCC (Multi-Version Concurrency Control) & Document-Level Locking với Snapshot Isolation\\ \hline 
+         Cấp độ Lock & Row-level, Table-level & Document-level\\ \hline 
+         Cách xử lý giao dịch đồng thời & Tạo nhiều phiên bản (snapshot) của row để giảm xung đột giữa các giao dịch đọc và ghi & Khóa riêng từng tài liệu khi ghi, giảm tranh chấp so với khóa cấp cao hơn\\ \hline 
+         Tính nhất quán (Consistency) & Strong Consistency theo mô hình ACID & Eventual Consistency (hỗ trợ ACID từ phiên bản 4.0, nhưng không mạnh như PostgreSQL)\\ \hline 
+         Mức cách ly giao dịch (Isolation Levels) & Hỗ trợ nhiều cấp độ cách ly: Read Uncommitted, Read Committed, Repeatable Read, Serializable. & Không hỗ trợ các mức cách ly phức tạp như PostgreSQL\\ \hline
+         Xử lý Deadlock & Có cơ chế phát hiện và xử lý deadlock & Ít xảy ra deadlock do khóa chỉ ở cấp tài liệu\\ \hline
+         Hiệu năng khi ghi đồng thời & Chậm hơn trong các giao dịch ghi đồng thời cao do cần lưu và quản lý nhiều phiên bản của row & Hiệu năng cao trong các giao dịch ghi đồng thời nhờ khóa tài liệu\\ \hline
+         Tương thích với giao dịch phức tạp & Rất phù hợp & Hạn chế, chủ yếu phù hợp với các giao dịch đơn giản\\ \hline
+    \end{tabular}
+    \caption{So sánh về Concurrency control giữa PostgreSQL và MongoDB}
+    \label{tab:concurrency_control}
+\end{table}
+\indent \textbf{Kết luận:}
+\newpage

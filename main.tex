@@ -1,0 +1,125 @@
+\documentclass[11pt, a4paper]{article}
+\input{package}
+%\usepackage{pstcol} 								% PSTricks with the standard color package
+
+\newtheorem{theorem}{{\bf Định lý}}
+\newtheorem{property}{{\bf Tính chất}}
+\newtheorem{proposition}{{\bf Mệnh đề}}
+\newtheorem{corollary}{{\bf Hệ quả.}}
+\newtheorem{lemma}{{\bf Bổ đề}}
+\newtheorem{definition}{{\bf Định nghĩa}}
+
+%\usepackage{fancyhdr}
+\setlength{\headheight}{40pt}
+\pagestyle{fancy}
+\fancyhead{} % clear all header fields
+\fancyhead[L]{
+ \begin{tabular}{rl}
+    \begin{picture}(25,15)(0,-10)
+    \put(0,-8){\includegraphics[scale =.2]{Image/bk_name_vi.png}}
+   \end{picture}	
+ \end{tabular}
+}
+\fancyhead[R]{
+	\begin{tabular}{l}
+		\tiny \bf \\
+		\tiny \bf 
+	\end{tabular}  }
+\fancyfoot{} % clear all footer fields
+\fancyfoot[L]{\scriptsize \ttfamily Hệ quản trị cơ sở dữ liệu (CO3021)}
+\fancyfoot[R]{\scriptsize \ttfamily Page {\thepage}/\pageref{LastPage}}
+\renewcommand{\headrulewidth}{0.3pt}
+\renewcommand{\footrulewidth}{0.3pt} 
+\renewcommand{\figureautorefname}{Hình}
+\renewcommand{\tableautorefname}{Bảng}
+\sectionfont{\color{black}}
+\subsectionfont{\color{black}}
+\subsubsectionfont{\color{blue}}
+%%%
+\setcounter{secnumdepth}{4}
+\setcounter{tocdepth}{4}
+\makeatletter
+\titleclass{\subsubsubsection}{straight}[\subsection]
+\newcounter {subsubsubsection}[subsubsection]
+\renewcommand\thesubsubsubsection{\thesubsubsection .\@alph\c@subsubsubsection}
+\titleformat{\subsubsubsection}
+  {\normalfont\normalsize\bfseries}{\thesubsubsubsection}{1em}{}
+\titlespacing*{\subsubsubsection}
+{10pt}{3.25ex plus 1ex minus .2ex}{1.5ex plus .2ex}
+% \newcommand\subsubsubsection{\@startsection{subsubsubsection}{4}{\z@}%
+%                                      {-3.25ex\@plus -1ex \@minus -.2ex}%
+%                                      {1.5ex \@plus .2ex}%
+%                                      {\normalfont\normalsize\bfseries}}
+\def\toclevel@subsubsubsection{4}
+\newcommand*\l@subsubsubsection{\@dottedtocline{4}{5em}{4.1em}}
+\makeatother
+
+\DeclareUnicodeCharacter{2212}{-}
+\begin{document}
+
+\begin{titlepage}
+\begin{center}
+\large TRƯỜNG ĐẠI HỌC BÁCH KHOA\\
+ĐẠI HỌC QUỐC GIA THÀNH PHỐ HỒ CHÍ MINH\\
+KHOA KHOA HỌC \& KỸ THUẬT MÁY TÍNH
+\end{center}
+
+\vspace{-20pt}
+
+\begin{figure}[h!]
+\begin{center}
+\includegraphics[width=8cm]{Image/Logo.png}
+\end{center}
+\end{figure}
+\vspace{-20pt}
+\begin{center}
+\begin{tabular}{c}
+\multicolumn{1}{c}{\textbf{{\Huge Hệ quản trị cơ sở dữ liệu (CO3021)}}}\\
+~~\\
+\hline
+\\
+\multicolumn{1}{l}{\textbf{{\large Báo cáo Bài tập lớn}}}\\
+\\
+\textbf{{\huge "Postgre vs MongoDB"}}\\
+% \vspace{0.5cm}
+\\
+\hline
+\end{tabular}
+\end{center}
+
+\begin{center}
+    \textbf{\large Lớp:} \large L01 - HK241 \\
+\end{center}
+\begin{table}[h]
+\begin{tabular}{rrl}
+\hspace{2 cm} & {\textbf{\large Giảng viên:}} & \large Lê Thị Bảo Thu\\\\
+& {\textbf{\large Sinh viên:}} & \large Lê Duy Anh - 2112762\\\\
+& & \large Phan Thanh Bình - 2110826\\\\
+& & \large Nguyễn Thanh Hải - 2110152\\\\
+& & \large Nguyễn Trần Bảo Ngọc - 2111860\\\\
+\end{tabular}
+\end{table}
+
+\vspace{10pt}
+
+
+\begin{center}
+{\footnotesize THÀNH PHỐ HỒ CHÍ MINH, 9/2024}
+\end{center}
+\end{titlepage}
+
+\pagenumbering{roman}
+\tableofcontents
+\newpage
+\listoffigures
+% \newpage
+% \listoftables
+\newpage
+\pagenumbering{arabic}
+\input{Content/init}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\section{TÀI LIỆU THAM KHẢO}
+\input{Content/reference}
+\end{document}
+

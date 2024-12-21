@@ -1,0 +1,326 @@
+\subsection{Data backup and recovery}
+\subsubsection{Lý thuyết}
+\indent Sao lưu và khôi phục là một quy trình quan trọng nhằm bảo vệ dữ liệu trong trường hợp xảy ra sự cố, chẳng hạn như mất mát, hư hỏng, hoặc bị tấn công. Quy trình này bao gồm hai bước chính: đầu tiên là sao chép dữ liệu hiện có và lưu trữ nó tại một nơi an toàn, và thứ hai là khôi phục dữ liệu đã sao lưu về một vị trí cụ thể khi cần thiết. Vị trí này có thể là nơi ban đầu dữ liệu được lưu trữ hoặc một địa điểm thay thế an toàn hơn để đảm bảo dữ liệu có thể được sử dụng lại trong các hoạt động vận hành của tổ chức.\\
+
+Một điểm đặc biệt quan trọng trong sao lưu là tính bất biến của bản sao lưu (thường được gọi là snapshot). Điều này có nghĩa là bản sao lưu không thể bị thay đổi hoặc chỉnh sửa sau khi được tạo ra. Tính bất biến này giúp bảo vệ dữ liệu khỏi các mối đe dọa như ransomware, trong đó kẻ tấn công có thể cố gắng mã hóa hoặc thay đổi dữ liệu để đòi tiền chuộc.\\
+
+Bên cạnh đó, sao lưu và khôi phục không chỉ đơn thuần là một hoạt động mà còn là một danh mục các giải pháp công nghệ. Những giải pháp này có thể bao gồm hệ thống sao lưu tại chỗ (onsite) hoặc dựa trên nền tảng đám mây (cloud-based), giúp tự động hóa và tối ưu hóa toàn bộ quy trình. Các công cụ này không chỉ giúp đảm bảo dữ liệu luôn được bảo vệ, mà còn hỗ trợ tổ chức duy trì khả năng truy xuất dữ liệu nhanh chóng và đáp ứng các yêu cầu về tuân thủ pháp lý hoặc các chính sách quản trị dữ liệu.
+\subsubsection{Data backup and recovery trong PostgreSQL}
+\indent Trong PostgreSQL, sao lưu và phục hồi dữ liệu có thể được thực hiện theo nhiều cách khác nhau, tùy thuộc vào nhu cầu của bạn về tính nhất quán, hiệu suất và sự dễ dàng khi sử dụng. Dưới đây là một số phương pháp phổ biến:
+\begin{enumerate}
+    \item Sao Lưu SQL
+
+    \hspace{1cm} Phương pháp SQL-dump tạo tệp văn bản chứa các lệnh SQL để khôi phục cơ sở dữ liệu về trạng thái ban đầu tại thời điểm dump. PostgreSQL hỗ trợ công cụ pg\_dump cho mục đích này. Lệnh cơ bản:
+    \begin{lstlisting}
+        pg_dump dbname > tep_dau_ra
+    \end{lstlisting}
+    
+    \hspace{1cm} Công cụ pg\_dump hoạt động như một ứng dụng khách PostgreSQL thông minh, cho phép sao lưu từ xa nếu có quyền truy cập đọc vào tất cả các bảng cần thiết, thường yêu cầu quyền siêu người dùng. Bạn có thể chỉ định máy chủ và cổng bằng tùy chọn dòng lệnh -h host và -p port, hoặc dựa vào biến môi trường như PGHOST và PGPORT.\\
+
+    \hspace{1cm} Mặc định, pg\_dump kết nối với cơ sở dữ liệu bằng tên người dùng hệ điều hành hiện tại, nhưng có thể thay đổi bằng -U hoặc biến môi trường PGUSER. Công cụ này tạo bản dump nhất quán nội bộ, bỏ qua các cập nhật diễn ra trong quá trình sao lưu mà không làm gián đoạn các hoạt động khác, ngoại trừ các tác vụ như VACUUM FULL.
+    \item Sao lưu cấp hệ thống tập tin
+
+    \hspace{1cm}Một phương pháp sao lưu thay thế là sao chép trực tiếp các tệp dữ liệu của PostgreSQL, nhưng cách này có những hạn chế so với pg\_dump:
+    \begin{itemize}
+        \item Yêu cầu tắt máy chủ:
+
+        \hspace{1cm}Để sao lưu toàn vẹn, máy chủ cơ sở dữ liệu cần được tắt hoàn toàn. Các biện pháp như chặn kết nối không đảm bảo kết quả đáng tin cậy. Tắt máy chủ cũng là yêu cầu khi khôi phục dữ liệu.
+        \item Không thể sao lưu hoặc khôi phục từng phần:
+
+        \hspace{1cm}Sao lưu riêng lẻ các bảng hoặc cơ sở dữ liệu từ tệp sẽ không khả thi do thông tin trạng thái giao dịch nằm trong các tệp nhật ký cam kết (pg\_clog/). Điều này khiến phương pháp này chỉ phù hợp để khôi phục toàn bộ cụm cơ sở dữ liệu.
+        \item Sử dụng ảnh chụp nhanh hệ thống tệp:
+
+        \hspace{1cm}Nếu hệ thống tệp hỗ trợ ảnh chụp nhanh nhất quán, bạn có thể sử dụng tính năng này mà không cần tắt máy chủ. Tuy nhiên, các tệp được sao lưu sẽ cần phát lại nhật ký WAL khi khôi phục. Đảm bảo tất cả tệp WAL được đưa vào sao lưu. Với cơ sở dữ liệu trải rộng trên nhiều hệ thống tệp, việc tạo ảnh chụp đồng bộ là rất khó, do đó, nên tắt máy chủ để đảm bảo độ tin cậy.
+        \item Sao lưu bằng rsync:
+
+        \hspace{1cm}Chạy rsync khi máy chủ đang hoạt động, sau đó tắt máy chủ và chạy rsync lần hai để đồng bộ hóa dữ liệu. Phương pháp này giảm thiểu thời gian ngừng hoạt động.
+        \item Dung lượng lưu trữ lớn hơn:
+
+        \hspace{1cm}Sao lưu hệ thống tệp thường tốn dung lượng hơn so với pg\_dump, vì nó lưu toàn bộ nội dung chỉ mục thay vì các lệnh tái tạo chỉ mục.
+    \end{itemize}
+
+    \hspace{1cm}Ví dụ lệnh sao lưu:
+    \begin{lstlisting}
+        tar -cf backup.tar /usr/local/pgsql/data
+    \end{lstlisting}
+
+    \hspace{1cm}Tóm lại, sao lưu hệ thống tệp hữu ích trong một số trường hợp nhất định nhưng yêu cầu kỹ thuật cao và có thể không linh hoạt bằng pg\_dump.
+    \item Sao lưu trực tuyến và phục hồi tại thời điểm (PITR)
+
+    \hspace{1cm}PostgreSQL duy trì nhật ký ghi trước (WAL) trong thư mục pg\_xlog/, ghi lại mọi thay đổi đối với tệp dữ liệu của cơ sở dữ liệu. WAL chủ yếu nhằm mục đích khôi phục cơ sở dữ liệu về trạng thái nhất quán khi hệ thống gặp sự cố, thông qua việc phát lại các mục nhật ký từ điểm kiểm tra cuối cùng. Ngoài ra, WAL hỗ trợ phương pháp sao lưu kết hợp với sao lưu cấp hệ thống tệp, giúp khôi phục cơ sở dữ liệu về thời điểm hiện tại mà không cần sao lưu hoàn toàn nhất quán.
+
+    \hspace{1cm}Ưu điểm của phương pháp này là không cần bản sao lưu hoàn toàn nhất quán, có thể sao lưu liên tục thông qua các tệp WAL, và hỗ trợ khôi phục theo thời điểm. Nó cũng cho phép tạo hệ thống "chờ nóng" với một bản sao cơ sở dữ liệu gần nhất. Tuy nhiên, phương pháp này yêu cầu nhiều dung lượng lưu trữ và chỉ hỗ trợ khôi phục toàn bộ cụm cơ sở dữ liệu. Để khôi phục thành công, cần một chuỗi liên tục các tệp WAL từ thời điểm bắt đầu sao lưu, do đó, việc thiết lập và kiểm tra lưu trữ tệp WAL cần được thực hiện trước khi sao lưu.
+    \begin{enumerate}
+        \item[3.1] Thiết lập lưu trữ WAL
+        \begin{itemize}
+            \item Quản lý WAL: PostgreSQL tạo chuỗi vô hạn các bản ghi WAL, chia thành tệp phân đoạn (16MB thường). Các tệp này được tái chế khi không sử dụng.
+            \item Lưu trữ WAL: PostgreSQL cho phép cấu hình lệnh shell để sao chép các tệp WAL đã hoàn thành đến vị trí lưu trữ, như thư mục NFS, băng từ hoặc đĩa.
+            \item Cấu hình lưu trữ: Lệnh lưu trữ được chỉ định trong \\archive\_command trong postgresql.conf với tham số \%p (đường dẫn) và \%f (tên tệp).
+            \item Xử lý lỗi: Lệnh lưu trữ cần trả về trạng thái thoát bằng không khi thành công. Nếu thất bại, PostgreSQL sẽ thử lại cho đến khi thành công và không ghi đè tệp đã tồn tại.
+            \item Tốc độ và theo dõi: Tốc độ lưu trữ không quan trọng miễn là có thể theo kịp tốc độ tạo WAL. Cần theo dõi quá trình để tránh thiếu dung lượng đĩa.
+            \item Khôi phục trong thời gian thực: Có thể sao lưu định kỳ phân đoạn WAL hiện tại để giữ dữ liệu gần nhất.
+            \item Kích thước tệp: Tên tệp WAL có thể dài tới 64 ký tự và chỉ cần nhớ tên tệp, không cần nhớ đường dẫn đầy đủ.
+            \item Lưu trữ tệp cấu hình: WAL không khôi phục thay đổi đối với các tệp cấu hình, nên cần sao lưu các tệp này bằng phương pháp sao lưu hệ thống tệp.
+        \end{itemize}
+        \item[3.2] Tạo bản sao lưu cơ sở
+        
+        \hspace{1cm}Quy trình sao lưu PostgreSQL đơn giản bao gồm các bước chính sau:
+        \begin{itemize}
+            \item Bật lưu trữ WAL: Đảm bảo tính năng lưu trữ WAL hoạt động.
+            \item Bắt đầu sao lưu: Kết nối với cơ sở dữ liệu và chạy lệnh \\pg\_start\_backup('nhãn') để bắt đầu sao lưu, trong đó 'nhãn' là tên định danh cho bản sao lưu.
+            \item Thực hiện sao lưu: Sử dụng công cụ sao lưu hệ thống tệp (như tar hoặc cpio) để sao lưu các tệp trong thư mục cơ sở dữ liệu.
+            \item Kết thúc sao lưu: Sau khi sao lưu xong, kết nối lại và chạy lệnh pg\_stop\_backup() để kết thúc sao lưu.
+            \item Lưu trữ WAL: Lưu các tệp phân đoạn WAL được tạo trong quá trình sao lưu. Tệp lịch sử sao lưu sẽ được tạo để ghi lại thông tin về tệp WAL cần thiết cho việc khôi phục.
+            \item Xử lý lỗi sao lưu: Công cụ sao lưu có thể cảnh báo khi tệp thay đổi trong quá trình sao chép, nhưng đây là tình huống bình thường trong sao lưu cơ sở dữ liệu đang hoạt động.
+            \item Tạo bản sao lưu dump: Sao lưu bao gồm tất cả các tệp dưới thư mục dữ liệu cơ sở dữ liệu, ngoại trừ thư mục pg\_xlog. Tệp lịch sử sao lưu sẽ ghi lại chi tiết về quá trình sao lưu.
+            \item Khôi phục: Giữ lại các tệp WAL và tệp lịch sử sao lưu để khôi phục chính xác dữ liệu.
+        \end{itemize}
+        \item[3.3] Phục hồi bằng Sao lưu Trực tuyến
+
+        \hspace{1cm}Quy trình khôi phục cơ sở dữ liệu PostgreSQL:
+        \begin{itemize}
+            \item Dừng Postmaster nếu nó đang chạy.
+            \item Sao lưu tạm thời thư mục dữ liệu và không gian bảng nếu có đủ dung lượng.
+            \item Dọn sạch thư mục dữ liệu và không gian bảng.
+            \item Khôi phục các tệp cơ sở dữ liệu từ bản sao lưu, đảm bảo quyền sở hữu và quyền truy cập chính xác.
+            \item Xóa tệp cũ trong pg\_xlog/ và tạo lại nếu cần.
+            \item Sao chép các tệp WAL chưa lưu trữ vào pg\_xlog/.
+            \item Tạo tệp recovery.conf để chỉ định lệnh khôi phục và cách lấy các tệp WAL đã lưu trữ.
+            \item Khởi động lại Postmaster, vào chế độ phục hồi và đọc các tệp WAL để hoàn tất khôi phục.
+            \item Kiểm tra cơ sở dữ liệu sau khôi phục, nếu cần, thực hiện lại từ bước 1.
+            \item Khôi phục pg\_hba.conf để cho phép người dùng truy cập khi quá trình khôi phục hoàn tất.
+        \end{itemize}
+        \hspace{1cm}Lệnh restore\_command trong recovery.conf phải chỉ định cách lấy lại các tệp WAL đã lưu trữ và phải trả về trạng thái thành công (0) khi hoàn thành. Tùy chọn "mục tiêu phục hồi" có thể được sử dụng để phục hồi tới một thời điểm hoặc ID giao dịch cụ thể.
+        \item[3.4] Cài đặt phục hồi
+
+        \hspace{1cm}Các thiết lập trong tệp recovery.conf chỉ áp dụng trong quá trình phục hồi và phải được chỉ định lại cho mỗi lần phục hồi:
+        \begin{itemize}
+            \item restore\_command: Lệnh shell để lấy phân đoạn tệp WAL từ kho lưu trữ. Lệnh phải trả về trạng thái 0 khi thành công. Ví dụ: 'cp /mnt/server/archivedir/\%f "\%p"'.
+            \item recovery\_target\_time: Dấu thời gian mục tiêu để phục hồi (có thể chỉ định hoặc recovery\_target\_xid).
+            \item recovery\_target\_xid: ID giao dịch mục tiêu để phục hồi (có thể chỉ định hoặc recovery\_target\_time).
+            \item recovery\_target\_inclusive: Xác định xem có dừng ngay sau mục tiêu khôi phục (true) hay ngay trước mục tiêu (false).
+            \item recovery\_target\_timeline: Chỉ định mốc thời gian phục hồi cụ thể, mặc định là mốc thời gian khi bản sao lưu được tạo.
+        \end{itemize}
+        \hspace{1cm} Các tham số này giúp kiểm soát chi tiết quá trình phục hồi và điểm dừng cụ thể.
+    \end{enumerate}
+\end{enumerate}
+\subsubsection{Data backup and recovery trong MongoDB}
+\indent Sao lưu và khôi phục dữ liệu trong MongoDB rất quan trọng để đảm bảo tính sẵn sàng và toàn vẹn của dữ liệu trong trường hợp xảy ra lỗi phần cứng, sai sót của con người hoặc hệ thống gặp sự cố. MongoDB cung cấp nhiều phương pháp sao lưu khác nhau, tùy thuộc vào cách triển khai và yêu cầu của bạn:
+\begin{enumerate}
+    \item Mongodump/Mongorestore
+    \begin{enumerate}
+        \item[1.1] Mongodump là công cụ dòng lệnh được sử dụng để tạo bản sao lưu dữ liệu trong MongoDB. Công cụ này xuất dữ liệu dưới dạng tệp BSON, giúp lưu trữ dữ liệu nhanh chóng và hiệu quả.
+        \begin{itemize}
+            \item Cú pháp cơ bản:
+            \begin{lstlisting}
+mongodump --uri="mongodb://<user>:<password>@<host>:<port>/<database>"
+            \end{lstlisting}
+            \item Tham số quan trọng:
+            \begin{itemize}
+                \item uri: Chỉ định URI của cơ sở dữ liệu MongoDB.
+                \item out: Đường dẫn thư mục để lưu các tệp sao lưu. Mặc định là thư mục dump trong thư mục làm việc hiện tại.
+                \item db: Sao lưu một cơ sở dữ liệu cụ thể.
+                \item collection: Sao lưu một bộ sưu tập (collection) cụ thể.
+                \item gzip: Nén dữ liệu để giảm kích thước tệp sao lưu.
+            \end{itemize}
+            \item Ví dụ:
+            
+            Sao lưu toàn bộ cơ sở dữ liệu:
+            \begin{lstlisting}
+mongodump --uri="mongodb://localhost:27017" --out=/backup
+            \end{lstlisting}
+            Sao lưu một cơ sở dữ liệu cụ thể:
+\begin{lstlisting}
+mongodump --db=myDatabase --out=/backup
+\end{lstlisting}
+            Sao lưu một bộ sưu tập cụ thể và nén dữ liệu:
+\begin{lstlisting}
+mongodump --db=myDatabase --collection=myCollection --out=/backup --gzip
+\end{lstlisting}
+        \end{itemize}
+        \item[1.2] Mongorestore là công cụ dòng lệnh dùng để khôi phục dữ liệu từ tệp BSON được tạo bởi mongodump.
+        \begin{itemize}
+            \item Cú pháp cơ bản:
+            \begin{lstlisting}
+mongorestore --uri="mongodb://<user>:<password>@<host>:<port>" <path_to_backup>
+            \end{lstlisting}
+            \item Tham số quan trọng:
+            \begin{itemize}
+                \item uri: Chỉ định URI của cơ sở dữ liệu MongoDB.
+                \item db: Khôi phục dữ liệu vào một cơ sở dữ liệu cụ thể.
+                \item collection: Khôi phục một bộ sưu tập cụ thể.
+                \item drop: Xóa dữ liệu cũ trước khi khôi phục dữ liệu mới.
+                \item gzip: Dùng khi tệp sao lưu đã được nén.
+            \end{itemize}
+            \item Ví dụ:
+            
+            Khôi phục toàn bộ cơ sở dữ liệu:
+\begin{lstlisting}
+mongorestore --uri="mongodb://localhost:27017" /backup
+\end{lstlisting}
+            Khôi phục một cơ sở dữ liệu cụ thể:
+\begin{lstlisting}
+mongorestore --db=myDatabase /backup/myDatabase
+\end{lstlisting}
+            Khôi phục và xóa dữ liệu cũ:
+\begin{lstlisting}
+mongorestore --db=myDatabase --drop /backup/myDatabase
+\end{lstlisting}
+        \end{itemize}
+    \end{enumerate}
+    \item Snapshot hệ thống tập tin
+\begin{enumerate}
+    \item[2.1] Tổng quan về Snapshot
+    
+    \hspace{1cm}Snapshot là một kỹ thuật sao lưu cấp hệ thống sử dụng các con trỏ giữa dữ liệu gốc và một khối lượng snapshot đặc biệt. Quá trình này áp dụng chiến lược "copy-on-write" để lưu trữ chỉ những phần dữ liệu đã thay đổi kể từ khi snapshot được tạo. Phương pháp này giúp tạo bản sao lưu nhanh chóng và đáng tin cậy nhưng đòi hỏi cấu hình hệ thống bên ngoài MongoDB.
+    \item[2.2] Ưu điểm
+    \begin{itemize}
+        \item Nhanh chóng và linh hoạt: Snapshot tạo bản sao dữ liệu trong thời gian ngắn mà không ảnh hưởng nhiều đến hiệu suất hệ thống.
+        \item Yêu cầu bổ sung: Cần thiết lập hệ thống lưu trữ chuyên dụng và cấu hình bổ sung để đảm bảo tính nhất quán.
+        \item Tính hợp lệ của dữ liệu: Snapshot phải được thực hiện khi cơ sở dữ liệu ở trạng thái ổn định, tức là tất cả các lệnh ghi đã được lưu vào đĩa.
+    \end{itemize}
+    \item[2.3] Các lưu ý chính:
+    \begin{itemize}
+        \item WiredTiger: Hỗ trợ snapshot cấp ổ đĩa khi các tệp dữ liệu và tệp nhật ký nằm trên các ổ đĩa khác nhau. Tuy nhiên, để đảm bảo dữ liệu nhất quán, cần khóa cơ sở dữ liệu và tạm dừng tất cả các hoạt động ghi trong quá trình sao lưu.
+        \item Mã hóa AES256-GCM (MongoDB Enterprise): Khi sử dụng mã hóa, cần xử lý các khóa và giá trị khối bộ đếm (IV) một cách cẩn thận. Nếu sao lưu từ snapshot "lạnh," MongoDB yêu cầu tùy chọn dòng lệnh đặc biệt để tránh xung đột khóa.
+        \item Dữ liệu hợp lệ: Snapshot chỉ phản ánh trạng thái dữ liệu tính đến điểm kiểm tra cuối cùng. Điểm kiểm tra thường xảy ra mỗi phút hoặc sau mỗi 2 GB dữ liệu được ghi.
+    \end{itemize}
+    \item[2.4] Hướng dẫn sao lưu bằng LVM trên Linux:
+    \begin{enumerate}
+        \item[2.4.1] Tạo Snapshot: Sử dụng lệnh sau để tạo một snapshot LVM:
+\begin{lstlisting}
+lvcreate --size 100M --snapshot --name mdb-snap01 /dev/vg0/mongodb
+\end{lstlisting}
+        \hspace{1cm}Trong đó, --size 100M là kích thước dành cho snapshot, phản ánh lượng dữ liệu thay đổi chứ không phải toàn bộ dữ liệu trên đĩa.
+        \item[2.4.2] Lưu trữ Snapshot: Sử dụng lệnh sau để tạo một snapshot LVM:
+\begin{lstlisting}
+umount /dev/vg0/mdb-snap01
+dd if=/dev/vg0/mdb-snap01 | gzip > mdb-snap01.gz
+\end{lstlisting}
+        \hspace{1cm}Quá trình này nén dữ liệu snapshot và lưu dưới dạng tệp .gz trên bộ lưu trữ ngoài.
+        \item[2.4.3] Khôi phục Snapshot: 
+        \begin{itemize}
+            \item Tạo ổ đĩa logic mới và giải nén snapshot vào đó:
+\begin{lstlisting}
+lvcreate --size 1G --name mdb-new vg0
+gzip -d -c mdb-snap01.gz | dd of=/dev/vg0/mdb-new
+\end{lstlisting}
+            \item Gắn ổ đĩa logic mới vào thư mục MongoDB:
+\begin{lstlisting}
+mount /dev/vg0/mdb-new /srv/mongodb
+\end{lstlisting}
+        \end{itemize}
+    \end{enumerate}
+    \item[2.5] Sao lưu và khôi phục từ xa bằng SSH:
+
+    \hspace{1cm}Snapshot có thể được sao lưu và khôi phục từ xa để đảm bảo an toàn dữ liệu trong trường hợp lỗi hạ tầng. Ví dụ:
+    \begin{itemize}
+        \item Sao lưu từ xa:
+\begin{lstlisting}
+dd if=/dev/vg0/mdb-snap01 | ssh username@example.com gzip > /path/backup/mdb-snap01.gz
+\end{lstlisting}
+        \item Khôi phục từ xa:
+\begin{lstlisting}
+ssh username@example.com gzip -d -c /path/backup/mdb-snap01.gz | dd of=/dev/vg0/mdb-new
+mount /dev/vg0/mdb-new /srv/mongodb
+\end{lstlisting}
+    \end{itemize}
+    \item[2.6]Sao lưu MongoDB không có nhật ký hoặc nhật ký trên ổ riêng:
+    \begin{enumerate}
+        \item[2.6.1] Khóa cơ sở dữ liệu để ngăn chặn các thao tác ghi bằng lệnh:
+\begin{lstlisting}
+db.fsyncLock();
+\end{lstlisting}
+        \item[2.6.2] Tạo snapshot như đã hướng dẫn.
+        \item[2.6.3] Mở khóa cơ sở dữ liệu sau khi snapshot hoàn tất: 
+\begin{lstlisting}
+db.fsyncUnlock();
+\end{lstlisting}
+    \end{enumerate}
+\end{enumerate}
+    \item Khôi phục Bộ bản sao tự quản lý từ Bản sao lưu MongoDB
+
+    \hspace{1cm}Quy trình khôi phục bộ bản sao tự quản lý từ bản sao lưu trong MongoDB bao gồm việc lấy dữ liệu sao lưu và triển khai bộ bản sao mới với dữ liệu đã khôi phục. Phương pháp này phù hợp cho các trường hợp thử nghiệm, phục hồi sau thảm họa, hoặc sao chép môi trường sản xuất.
+
+    \hspace{1cm} Quy Trình Khôi Phục
+    \begin{enumerate}
+        \item[3.1] Chuẩn bị dữ liệu sao lưu
+        \begin{itemize}
+            \item Lấy tệp sao lưu từ snapshot hệ thống tệp, MongoDB Cloud Manager, hoặc Ops Manager.
+            \item Lưu ý với công cụ mã hóa AES256-GCM:
+            \begin{itemize}
+                \item Hot Backup: MongoDB tự động phát hiện khóa "bẩn" khi khởi động.
+                \item Cold Backup: Sử dụng --eseDatabaseKeyRollover để đảm bảo an toàn khóa.
+            \end{itemize}
+        \end{itemize}
+        \item[3.2] Xóa cơ sở dữ liệu local (nếu có)
+        \begin{itemize}
+            \item Chạy MongoDB độc lập từ tệp sao lưu:
+\begin{lstlisting}
+mongod --dbpath /data/db <startup options>
+\end{lstlisting}
+            \item Kết nối MongoDB shell và xóa cơ sở dữ liệu local:
+\begin{lstlisting}
+use local
+db.dropDatabase()
+\end{lstlisting}
+            \item Tắt phiên bản MongoDB.
+        \end{itemize}
+        \item[3.3] Tạo bộ bản sao nút đơn
+        \begin{itemize}
+            \item Khởi động MongoDB với các tệp sao lưu và thiết lập tên bộ bản sao:
+\begin{lstlisting}
+mongod --dbpath /data/db --replSet <replName> <startup options>
+\end{lstlisting}
+            \item Kết nối MongoDB shell và khởi tạo bộ bản sao:
+\begin{lstlisting}
+rs.initiate({
+    _id: "<replName>",
+    members: [{ _id: 0, host: "<host:port>" }]
+})
+\end{lstlisting}
+        \end{itemize}
+        \item[3.4] Thêm các thành viên thứ cấp 
+
+        \hspace{1cm}Có hai cách chính để thêm thành viên vào bộ bản sao:
+        \begin{enumerate}
+            \item[3.4.1] Sao chép tệp cơ sở dữ liệu thủ công:
+            \begin{enumerate}
+                \item[1.] Tắt mongod chính.
+                \item[2.] Sao chép thư mục dữ liệu sang các máy chủ thứ cấp.
+                \item[3.] Khởi động mongod trên tất cả các thành viên.
+                \item[4.] Thêm các thành viên vào bộ bản sao bằng lệnh rs.add(). 
+            \end{enumerate}
+            \item[3.4.2] Đồng bộ ban đầu: 
+            \begin{enumerate}
+                \item[1.] Đảm bảo thư mục dữ liệu của thành viên thứ cấp trống.
+                \item[2.] Khởi động các thành viên với cài đặt tương tự.
+                \item[3.] Thêm từng thành viên bằng lệnh rs.add(), để dữ liệu được đồng bộ tự động từ nút chính. 
+            \end{enumerate}
+        \end{enumerate}
+    \end{enumerate}
+\end{enumerate}
+
+\subsubsection{So sánh và kết luận}
+\begin{itemize}
+    \item Backup Logic: PostgreSQL sử dụng công cụ pg\_dump để sao lưu dữ liệu dưới dạng SQL, dễ đọc nhưng tốc độ chậm với cơ sở dữ liệu lớn, trong khi MongoDB dùng mongodump, lưu dữ liệu dưới dạng BSON, phù hợp và nhanh hơn với dữ liệu nhỏ và vừa.
+    \item Backup Vật Lý: PostgreSQL hỗ trợ pg\_basebackup hoặc snapshot ở cấp độ file, còn MongoDB hỗ trợ backup thông qua snapshot hệ thống file hoặc các dịch vụ lưu trữ đám mây.
+    \item Phục hồi theo thời gian (PITR): PostgreSQL có khả năng phục hồi theo thời gian mạnh mẽ nhờ WAL logs, trong khi MongoDB không hỗ trợ PITR và cần dùng các giải pháp bổ sung bên ngoài.
+    \item Replication cho sao lưu: PostgreSQL yêu cầu cấu hình replication để khôi phục dữ liệu tự động, còn MongoDB sử dụng replica set, cho phép tự động phục hồi dữ liệu mà không cần cấu hình phức tạp.
+    \item Tốc độ khôi phục: PostgreSQL có tốc độ khôi phục phụ thuộc vào kích thước và loại backup, còn MongoDB thường khôi phục nhanh hơn nếu dùng snapshot hoặc mongorestore.
+\end{itemize}
+\begin{table}[H]
+    \centering
+    \begin{tabular}{|L{3.2cm}|L{5.05cm}|L{5.05cm}|} \hline 
+         \textbf{Tiêu chí so sánh }&  \textbf{PostgreSQL}&  \textbf{MongoDB}\\ \hline 
+         Backup Logic & pg\_dump (SQL, dễ đọc nhưng chậm với DB lớn) & mongodump (BSON, nhanh hơn với dữ liệu vừa và nhỏ)\\ \hline 
+         Backup Vật Lý & pg\_basebackup hoặc snapshot file-level & File system snapshot hoặc dịch vụ cloud backup\\ \hline 
+         Phục hồi theo thời gian (PITR) & Hỗ trợ mạnh mẽ với WAL logs & Không hỗ trợ PITR, yêu cầu giải pháp bên ngoài\\ \hline 
+         Replication cho sao lưu & Dữ liệu cần cấu hình replication để khôi phục tự động & Replica set giúp tự động phục hồi dữ liệu\\ \hline 
+         Tốc độ khôi phục & Tùy thuộc vào kích thước và loại backup & Nhanh hơn khi sử dụng snapshot hoặc mongorestore\\ \hline
+    \end{tabular}
+    \caption{So sánh về Data backup and recovery giữa PostgreSQL và MongoDB}
+    \label{tab:data_backup_and_recovery}
+\end{table}
+\indent \textbf{Kết luận:}
+\newpage
